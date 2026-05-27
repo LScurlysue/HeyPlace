@@ -286,6 +286,10 @@ function openTriage(place) {
     triageStatus.value = data.status;
 
     triagePanel.classList.remove('hidden');
+
+    // Reset delete UI state
+    document.getElementById('delete-confirm').classList.add('hidden');
+    document.getElementById('delete-place-btn').classList.remove('hidden');
 }
 
 function closeTriage() {
@@ -428,6 +432,33 @@ triageAddress.addEventListener('input', () => {
 closeTriageBtn.addEventListener('click', closeTriage);
 triageCategory.addEventListener('change', updateTriageData);
 triageStatus.addEventListener('change', updateTriageData);
+
+// Delete logic
+const deletePlaceBtn = document.getElementById('delete-place-btn');
+const deleteConfirm = document.getElementById('delete-confirm');
+const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+
+deletePlaceBtn.addEventListener('click', () => {
+    deleteConfirm.classList.remove('hidden');
+    deletePlaceBtn.classList.add('hidden');
+});
+
+cancelDeleteBtn.addEventListener('click', () => {
+    deleteConfirm.classList.add('hidden');
+    deletePlaceBtn.classList.remove('hidden');
+});
+
+confirmDeleteBtn.addEventListener('click', () => {
+    if (!activePlace) return;
+    // Remove from allPlaces
+    allPlaces = allPlaces.filter(p => p.id !== activePlace.id);
+    localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
+    // Remove from triageData
+    delete triageData[activePlace.id];
+    localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
+    closeTriage();
+});
 
 // Startup
 document.addEventListener('DOMContentLoaded', initMap);
