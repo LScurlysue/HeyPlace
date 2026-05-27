@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MapFolio - Google Maps Saved Places</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <h1>📍 MapFolio</h1>
+                <p>Organize your saved places.</p>
+            </header>
+
+            <section class="upload-section">
+                <div class="action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
+                    <label for="file-upload" class="action-btn upload-btn" style="flex: 1;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Upload JSON
+                    </label>
+                    <input id="file-upload" type="file" style="display: none;" />
+                    
+                    <button id="add-manual-btn" class="action-btn add-btn" style="flex: 1;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        Add Manual
+                    </button>
+                </div>
+            </section>
+
+            <section class="filters-section">
+                <div class="filter-group">
+                    <label for="filter-category">Category</label>
+                    <select id="filter-category">
+                        <option value="All">All Categories</option>
+                        <option value="Hotel/Accommodation">Hotel/Accommodation</option>
+                        <option value="Restaurant/Cafe">Restaurant/Cafe</option>
+                        <option value="Beach">Beach</option>
+                        <option value="Nature/Park">Nature/Park</option>
+                        <option value="Parking/Fuel">Parking/Fuel</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Family/Kids Activity">Family/Kids Activity</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-status">Status</label>
+                    <select id="filter-status">
+                        <option value="All">All Statuses</option>
+                        <option value="Want to Try">Want to Try (Blue)</option>
+                        <option value="Been There">Been There (Yellow)</option>
+                        <option value="Loved It">Loved It (Green)</option>
+                        <option value="Skip It">Skip It (Red)</option>
+                        <option value="Unsorted">Unsorted (Grey)</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="places-section">
+                <div class="places-header">
+                    <h2>Places <span id="place-count">(0)</span></h2>
+                </div>
+                <ul id="places-list" class="places-list">
+                    <!-- Places will be injected here -->
+                    <div class="empty-state">Upload a file to see your places here.</div>
+                </ul>
+            </section>
+        </aside>
+
+        <!-- Map Container -->
+        <section class="map-container">
+            <div id="map"></div>
+            
+            <!-- Triage Panel (Hidden by default, shown when a place is selected) -->
+            <div id="triage-panel" class="triage-panel hidden">
+                <button id="close-triage" class="close-btn">&times;</button>
+                <input type="text" id="triage-title" class="triage-title-input" placeholder="Place Name" />
+                <input type="text" id="triage-address" class="triage-address-input" placeholder="Address" />
+                <a id="triage-url" href="#" target="_blank" class="triage-link">View on Google Maps</a>
+                
+                <div class="triage-form">
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="triage-category">
+                            <option value="Unassigned">Select a Category</option>
+                            <option value="Hotel/Accommodation">Hotel/Accommodation</option>
+                            <option value="Restaurant/Cafe">Restaurant/Cafe</option>
+                            <option value="Beach">Beach</option>
+                            <option value="Nature/Park">Nature/Park</option>
+                            <option value="Parking/Fuel">Parking/Fuel</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Family/Kids Activity">Family/Kids Activity</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="triage-status">
+                            <option value="Unsorted">Unsorted</option>
+                            <option value="Want to Try">Want to Try</option>
+                            <option value="Been There">Been There</option>
+                            <option value="Loved It">Loved It</option>
+                            <option value="Skip It">Skip It</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="script.js"></script>
+</body>
+</html>
