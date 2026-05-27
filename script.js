@@ -45,18 +45,14 @@ const placesList = document.getElementById('places-list');
 const placeCount = document.getElementById('place-count');
 const filterCategory = document.getElementById('filter-category');
 const filterStatus = document.getElementById('filter-status');
-const addManualBtn = document.getElementById('add-manual-btn');
 
-// New Search Elements
+// Search Elements
 const localSearchInput = document.getElementById('local-search-input');
-const toggleNominatimBtn = document.getElementById('toggle-nominatim-btn');
-const nominatimPanel = document.getElementById('nominatim-panel');
-const nominatimInput = document.getElementById('nominatim-input');
-const nominatimSearchBtn = document.getElementById('nominatim-search-btn');
+const searchAddHint = document.getElementById('search-add-hint');
+const searchWorldwideBtn = document.getElementById('search-worldwide-btn');
 const nominatimResultsList = document.getElementById('nominatim-results');
 const nominatimLoading = document.getElementById('nominatim-loading');
 
-let isAddingPlace = false;
 
 const triagePanel = document.getElementById('triage-panel');
 const closeTriageBtn = document.getElementById('close-triage');
@@ -74,34 +70,7 @@ function initMap() {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    map.on('click', function(e) {
-        if (!isAddingPlace) return;
-        
-        isAddingPlace = false;
-        document.getElementById('map').classList.remove('map-adding');
-        
-        const lat = e.latlng.lat;
-        const lng = e.latlng.lng;
-        const id = `manual-${Date.now()}`;
-        
-        const newPlace = {
-            id: id,
-            name: 'New Place',
-            address: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-            url: '#',
-            lat: lat,
-            lng: lng
-        };
-        
-        allPlaces.push(newPlace);
-        localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
-        
-        triageData[id] = { category: 'Other', status: 'Unsorted' };
-        localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
-        
-        applyFiltersAndRender();
-        openTriage(newPlace);
-    });
+
 
     if (allPlaces.length > 0) {
         applyFiltersAndRender();
@@ -317,8 +286,8 @@ function getTriageData(id) {
 }
 
 // Nominatim Search Logic
-async function searchNominatim() {
-    const query = nominatimInput.value.trim();
+async function searchNominatim(query) {
+    query = (query || '').trim();
     if (!query) return;
 
     nominatimResultsList.innerHTML = '';
@@ -394,25 +363,29 @@ function addNominatimPlace(result, name, address) {
 // Event Listeners
 filterCategory.addEventListener('change', applyFiltersAndRender);
 filterStatus.addEventListener('change', applyFiltersAndRender);
-localSearchInput.addEventListener('input', applyFiltersAndRender);
 
-toggleNominatimBtn.addEventListener('click', () => {
-    nominatimPanel.classList.toggle('hidden');
-    if (!nominatimPanel.classList.contains('hidden')) {
-        nominatimInput.focus();
+// Unified smart search
+localSearchInput.addEventListener('input', () => {
+    applyFiltersAndRender();
+    const query = localSearchInput.value.trim();
+    // Show "Search worldwide" hint if typed something and no local results
+    if (query.length > 2) {
+        searchAddHint.classList.remove('hidden');
+        searchWorldwideBtn.textContent = `🌍 Search worldwide for "${query}"`;
+    } else {
+        searchAddHint.classList.add('hidden');
+        nominatimResultsList.innerHTML = '';
     }
 });
 
-nominatimSearchBtn.addEventListener('click', searchNominatim);
-nominatimInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') searchNominatim();
+searchWorldwideBtn.addEventListener('click', () => {
+    searchNominatim(localSearchInput.value.trim());
 });
 
-addManualBtn.addEventListener('click', () => {
-    isAddingPlace = true;
-    document.getElementById('map').classList.add('map-adding');
-    // Provide a small hint to the user
-    triagePanel.classList.add('hidden');
+localSearchInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && localSearchInput.value.trim().length > 2) {
+        searchNominatim(localSearchInput.value.trim());
+    }
 });
 
 triageTitle.addEventListener('input', () => {

@@ -22,22 +22,15 @@
             </header>
 
             <section class="search-section">
-                <input type="text" id="local-search-input" placeholder="Search saved places..." class="search-input local-search" />
-                
-                <div class="nominatim-wrapper">
-                    <button id="toggle-nominatim-btn" class="action-btn find-new-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-                        Find New Place Worldwide
-                    </button>
-                    <div id="nominatim-panel" class="nominatim-panel hidden">
-                        <div class="nominatim-input-group">
-                            <input type="text" id="nominatim-input" placeholder="Enter location name..." class="search-input nominatim-search" />
-                            <button id="nominatim-search-btn" class="action-btn search-btn">Search</button>
-                        </div>
-                        <div id="nominatim-loading" class="nominatim-msg hidden">Searching...</div>
-                        <ul id="nominatim-results" class="nominatim-results-list"></ul>
-                    </div>
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="local-search-input" placeholder="Search or add a new place..." class="search-input local-search" autocomplete="off" />
                 </div>
+                <div id="search-add-hint" class="search-add-hint hidden">
+                    <button id="search-worldwide-btn" class="search-worldwide-btn"></button>
+                </div>
+                <div id="nominatim-loading" class="nominatim-msg hidden">Searching worldwide...</div>
+                <ul id="nominatim-results" class="nominatim-results-list"></ul>
             </section>
 
             <section class="upload-section">
@@ -46,14 +39,10 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                         Upload JSON
                     </label>
-                    <input id="file-upload" type="file" style="display: none;" />
-                    
-                    <button id="add-manual-btn" class="action-btn add-btn" style="flex: 1;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                        Add Manual
-                    </button>
+                    <input id="file-upload" type="file" accept=".json,application/json" style="display: none;" />
                 </div>
             </section>
+
 
             <section class="filters-section">
                 <div class="filter-group">
