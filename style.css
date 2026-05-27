@@ -8,9 +8,22 @@
     --text-muted: #64748b;
     --border: #e2e8f0;
     
-    /* Status Colors */
+    /* Category Colors */
+    --cat-purple: #8b5cf6;
+    --cat-orange: #f97316;
+    --cat-blue: #3b82f6;
+    --cat-teal: #14b8a6;
+    --cat-yellow: #facc15;
+    --cat-green: #22c55e;
+    --cat-pink: #ec4899;
+    --cat-magenta: #d946ef;
+    --cat-dark-grey: #4b5563;
+    --cat-light-blue: #0ea5e9;
+    --cat-grey: #9ca3af;
+    
+    /* Status Border Colors */
     --status-blue: #3b82f6;
-    --status-yellow: #eab308;
+    --status-amber: #f59e0b;
     --status-green: #22c55e;
     --status-red: #ef4444;
     --status-grey: #9ca3af;
@@ -65,6 +78,106 @@ p { color: var(--text-muted); font-size: 0.875rem; }
 .sidebar-header {
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border);
+}
+
+.search-section {
+    padding: 1.5rem 1.5rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color var(--transition);
+}
+
+.search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.local-search {
+    margin-bottom: 1rem;
+}
+
+.nominatim-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.find-new-btn {
+    background-color: #0f172a;
+    color: white;
+    width: 100%;
+}
+
+.find-new-btn:hover {
+    background-color: #334155;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.nominatim-panel {
+    background-color: var(--bg-main);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    transition: opacity var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.nominatim-panel.hidden {
+    display: none;
+}
+
+.nominatim-input-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.search-btn {
+    background-color: var(--primary);
+    color: white;
+    padding: 0.5rem 1rem;
+}
+
+.nominatim-results-list {
+    list-style: none;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.nominatim-result-item {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-main);
+    line-height: 1.4;
+}
+
+.nominatim-result-item:hover {
+    background-color: var(--bg-panel);
+}
+
+.nominatim-msg {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 0.5rem;
 }
 
 .upload-section {
@@ -209,11 +322,16 @@ select:focus {
 }
 
 .place-status-indicator {
-    width: 12px;
-    height: 12px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     flex-shrink: 0;
-    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border: none;
+    color: white;
 }
 
 .place-details {
@@ -386,27 +504,31 @@ select:focus {
     border: none;
 }
 
-.marker-pin {
-    width: 24px;
-    height: 24px;
-    border-radius: 50% 50% 50% 0;
-    background: var(--status-grey);
-    position: absolute;
-    transform: rotate(-45deg);
-    left: 50%;
-    top: 50%;
-    margin: -12px 0 0 -12px;
-    box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    border: 2px solid white;
-    transition: background-color var(--transition);
+.emoji-marker {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    box-shadow: var(--shadow-md);
+    border: none;
+    transition: transform var(--transition);
+    color: white;
 }
 
-/* Marker Colors */
-.marker-Want-to-Try { background: var(--status-blue); }
-.marker-Been-There { background: var(--status-yellow); }
-.marker-Loved-It { background: var(--status-green); }
-.marker-Skip-It { background: var(--status-red); }
-.marker-Unsorted { background: var(--status-grey); }
+.emoji-marker:hover {
+    transform: scale(1.1) translateY(-2px);
+    z-index: 1000 !important;
+}
+
+/* Status Colors (Backgrounds) */
+.status-Want-to-Try { background-color: var(--status-blue) !important; }
+.status-Been-There { background-color: var(--status-amber) !important; }
+.status-Loved-It { background-color: var(--status-green) !important; }
+.status-Skip-It { background-color: var(--status-red) !important; }
+.status-Unsorted { background-color: var(--status-grey) !important; }
 
 /* Desktop Layout */
 @media (min-width: 768px) {

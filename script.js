@@ -6,6 +6,39 @@ let activePlace = null;
 let map = null;
 let markers = []; // Keep track of map markers
 
+const categoryConfig = {
+    'Destination': { emoji: '🗺️', cssClass: 'cat-Destination' },
+    'Hotel': { emoji: '🏨', cssClass: 'cat-Hotel' },
+    'Restaurant': { emoji: '🍽️', cssClass: 'cat-Restaurant' },
+    'Attractions': { emoji: '🏛️', cssClass: 'cat-Attractions' },
+    'Experiences': { emoji: '🎯', cssClass: 'cat-Experiences' },
+    'Beach': { emoji: '🏖️', cssClass: 'cat-Beach' },
+    'Nature': { emoji: '🌿', cssClass: 'cat-Nature' },
+    'Family/Kids': { emoji: '🎠', cssClass: 'cat-Family-Kids' },
+    'Shopping': { emoji: '🛍️', cssClass: 'cat-Shopping' },
+    'Parking/Fuel': { emoji: '🅿️', cssClass: 'cat-Parking-Fuel' },
+    'Toilets': { emoji: '🚻', cssClass: 'cat-Toilets' },
+    'Other': { emoji: '📍', cssClass: 'cat-Other' }
+};
+
+// Migration for old categories
+const categoryMigration = {
+    'Hotel/Accommodation': 'Hotel',
+    'Restaurant/Cafe': 'Restaurant',
+    'Nature/Park': 'Nature',
+    'Family/Kids Activity': 'Family/Kids'
+};
+let needsSave = false;
+for (let id in triageData) {
+    if (categoryMigration[triageData[id].category]) {
+        triageData[id].category = categoryMigration[triageData[id].category];
+        needsSave = true;
+    }
+}
+if (needsSave) {
+    localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
+}
+
 // DOM Elements
 const fileUpload = document.getElementById('file-upload');
 const placesList = document.getElementById('places-list');
@@ -13,6 +46,16 @@ const placeCount = document.getElementById('place-count');
 const filterCategory = document.getElementById('filter-category');
 const filterStatus = document.getElementById('filter-status');
 const addManualBtn = document.getElementById('add-manual-btn');
+
+// New Search Elements
+const localSearchInput = document.getElementById('local-search-input');
+const toggleNominatimBtn = document.getElementById('toggle-nominatim-btn');
+const nominatimPanel = document.getElementById('nominatim-panel');
+const nominatimInput = document.getElementById('nominatim-input');
+const nominatimSearchBtn = document.getElementById('nominatim-search-btn');
+const nominatimResultsList = document.getElementById('nominatim-results');
+const nominatimLoading = document.getElementById('nominatim-loading');
+
 let isAddingPlace = false;
 
 const triagePanel = document.getElementById('triage-panel');
@@ -128,14 +171,16 @@ function processData(features) {
 function applyFiltersAndRender() {
     const catFilter = filterCategory.value;
     const statFilter = filterStatus.value;
+    const searchTerm = localSearchInput.value.toLowerCase().trim();
 
     const filteredPlaces = allPlaces.filter(place => {
         const data = getTriageData(place.id);
         
         const matchCategory = catFilter === 'All' || data.category === catFilter;
         const matchStatus = statFilter === 'All' || data.status === statFilter;
+        const matchSearch = searchTerm === '' || place.name.toLowerCase().includes(searchTerm) || place.address.toLowerCase().includes(searchTerm);
         
-        return matchCategory && matchStatus;
+        return matchCategory && matchStatus && matchSearch;
     });
 
     renderSidebar(filteredPlaces);
@@ -160,10 +205,11 @@ function renderSidebar(places) {
             li.classList.add('active');
         }
 
-        const colorClass = data.status.replace(/ /g, '-');
+        const catConf = categoryConfig[data.category] || categoryConfig['Other'];
+        const statusClass = `status-${data.status.replace(/ /g, '-')}`;
         
         li.innerHTML = `
-            <div class="place-status-indicator marker-${colorClass}"></div>
+            <div class="place-status-indicator emoji-marker ${catConf.cssClass} ${statusClass}" style="width: 28px; height: 28px; font-size: 14px;">${catConf.emoji}</div>
             <div class="place-details">
                 <div class="place-name" title="${place.name}">${place.name}</div>
                 <div class="place-address" title="${place.address}">${place.address}</div>
@@ -192,13 +238,14 @@ function renderMap(places) {
 
     places.forEach(place => {
         const data = getTriageData(place.id);
-        const colorClass = data.status.replace(/ /g, '-');
+        const catConf = categoryConfig[data.category] || categoryConfig['Other'];
+        const statusClass = `status-${data.status.replace(/ /g, '-')}`;
 
         const customIcon = L.divIcon({
             className: 'custom-marker',
-            html: `<div class="marker-pin marker-${colorClass}"></div>`,
-            iconSize: [30, 42],
-            iconAnchor: [15, 42]
+            html: `<div class="emoji-marker ${catConf.cssClass} ${statusClass}">${catConf.emoji}</div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
         });
 
         const marker = L.marker([place.lat, place.lng], { icon: customIcon }).addTo(map);
@@ -265,9 +312,97 @@ function getTriageData(id) {
     return triageData[id] || { category: 'Other', status: 'Unsorted' };
 }
 
+// Nominatim Search Logic
+async function searchNominatim() {
+    const query = nominatimInput.value.trim();
+    if (!query) return;
+
+    nominatimResultsList.innerHTML = '';
+    nominatimLoading.classList.remove('hidden');
+
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+        const results = await response.json();
+        
+        nominatimLoading.classList.add('hidden');
+        
+        if (results.length === 0) {
+            nominatimResultsList.innerHTML = '<li class="nominatim-msg">No results found.</li>';
+            return;
+        }
+
+        results.forEach(result => {
+            const li = document.createElement('li');
+            li.className = 'nominatim-result-item';
+            
+            const name = result.name || result.display_name.split(',')[0];
+            const address = result.display_name;
+            
+            li.innerHTML = `<strong>${name}</strong><br><span style="color:var(--text-muted)">${address}</span>`;
+            
+            li.addEventListener('click', () => {
+                addNominatimPlace(result, name, address);
+            });
+            
+            nominatimResultsList.appendChild(li);
+        });
+    } catch (err) {
+        nominatimLoading.classList.add('hidden');
+        nominatimResultsList.innerHTML = '<li class="nominatim-msg">Error fetching results.</li>';
+        console.error(err);
+    }
+}
+
+function addNominatimPlace(result, name, address) {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    const id = `osm-${result.place_id}`;
+    
+    // Check if already exists
+    if (!allPlaces.some(p => p.id === id)) {
+        const newPlace = {
+            id: id,
+            name: name,
+            address: address,
+            url: `https://www.openstreetmap.org/node/${result.osm_id}`,
+            lat: lat,
+            lng: lng
+        };
+        
+        allPlaces.push(newPlace);
+        localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
+        
+        triageData[id] = { category: 'Other', status: 'Unsorted' };
+        localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
+    }
+    
+    // Hide panel and clear
+    nominatimPanel.classList.add('hidden');
+    nominatimInput.value = '';
+    nominatimResultsList.innerHTML = '';
+    
+    applyFiltersAndRender();
+    const addedPlace = allPlaces.find(p => p.id === id);
+    openTriage(addedPlace);
+    map.setView([lat, lng], 16);
+}
+
 // Event Listeners
 filterCategory.addEventListener('change', applyFiltersAndRender);
 filterStatus.addEventListener('change', applyFiltersAndRender);
+localSearchInput.addEventListener('input', applyFiltersAndRender);
+
+toggleNominatimBtn.addEventListener('click', () => {
+    nominatimPanel.classList.toggle('hidden');
+    if (!nominatimPanel.classList.contains('hidden')) {
+        nominatimInput.focus();
+    }
+});
+
+nominatimSearchBtn.addEventListener('click', searchNominatim);
+nominatimInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchNominatim();
+});
 
 addManualBtn.addEventListener('click', () => {
     isAddingPlace = true;

@@ -21,6 +21,25 @@
                 <p>Organize your saved places.</p>
             </header>
 
+            <section class="search-section">
+                <input type="text" id="local-search-input" placeholder="Search saved places..." class="search-input local-search" />
+                
+                <div class="nominatim-wrapper">
+                    <button id="toggle-nominatim-btn" class="action-btn find-new-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        Find New Place Worldwide
+                    </button>
+                    <div id="nominatim-panel" class="nominatim-panel hidden">
+                        <div class="nominatim-input-group">
+                            <input type="text" id="nominatim-input" placeholder="Enter location name..." class="search-input nominatim-search" />
+                            <button id="nominatim-search-btn" class="action-btn search-btn">Search</button>
+                        </div>
+                        <div id="nominatim-loading" class="nominatim-msg hidden">Searching...</div>
+                        <ul id="nominatim-results" class="nominatim-results-list"></ul>
+                    </div>
+                </div>
+            </section>
+
             <section class="upload-section">
                 <div class="action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
                     <label for="file-upload" class="action-btn upload-btn" style="flex: 1;">
@@ -41,13 +60,17 @@
                     <label for="filter-category">Category</label>
                     <select id="filter-category">
                         <option value="All">All Categories</option>
-                        <option value="Hotel/Accommodation">Hotel/Accommodation</option>
-                        <option value="Restaurant/Cafe">Restaurant/Cafe</option>
+                        <option value="Destination">Destination</option>
+                        <option value="Hotel">Hotel</option>
+                        <option value="Restaurant">Restaurant</option>
+                        <option value="Attractions">Attractions</option>
+                        <option value="Experiences">Experiences</option>
                         <option value="Beach">Beach</option>
-                        <option value="Nature/Park">Nature/Park</option>
-                        <option value="Parking/Fuel">Parking/Fuel</option>
+                        <option value="Nature">Nature</option>
+                        <option value="Family/Kids">Family/Kids</option>
                         <option value="Shopping">Shopping</option>
-                        <option value="Family/Kids Activity">Family/Kids Activity</option>
+                        <option value="Parking/Fuel">Parking/Fuel</option>
+                        <option value="Toilets">Toilets</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>
@@ -91,13 +114,17 @@
                         <label>Category</label>
                         <select id="triage-category">
                             <option value="Unassigned">Select a Category</option>
-                            <option value="Hotel/Accommodation">Hotel/Accommodation</option>
-                            <option value="Restaurant/Cafe">Restaurant/Cafe</option>
+                            <option value="Destination">Destination</option>
+                            <option value="Hotel">Hotel</option>
+                            <option value="Restaurant">Restaurant</option>
+                            <option value="Attractions">Attractions</option>
+                            <option value="Experiences">Experiences</option>
                             <option value="Beach">Beach</option>
-                            <option value="Nature/Park">Nature/Park</option>
-                            <option value="Parking/Fuel">Parking/Fuel</option>
+                            <option value="Nature">Nature</option>
+                            <option value="Family/Kids">Family/Kids</option>
                             <option value="Shopping">Shopping</option>
-                            <option value="Family/Kids Activity">Family/Kids Activity</option>
+                            <option value="Parking/Fuel">Parking/Fuel</option>
+                            <option value="Toilets">Toilets</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
