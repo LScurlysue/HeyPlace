@@ -10,6 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <!-- Leaflet Markercluster -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <!-- JSZip for KMZ parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -37,10 +42,11 @@
                 <div class="action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
                     <label for="file-upload" class="action-btn upload-btn" style="flex: 1;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        Upload JSON
+                        Import Places
                     </label>
-                    <input id="file-upload" type="file" accept=".json,application/json" style="display: none;" />
+                    <input id="file-upload" type="file" accept=".json,.kmz,.kml,.csv" multiple style="display: none;" />
                 </div>
+                <p class="upload-hint">Supports: Google Takeout JSON · KMZ/KML · CSV</p>
             </section>
 
 
@@ -143,6 +149,7 @@
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

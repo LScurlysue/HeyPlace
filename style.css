@@ -582,6 +582,37 @@ select:focus {
 
 .cancel-delete-btn:hover { background-color: var(--border); }
 
+.upload-hint {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.4rem;
+}
+
+/* Import Toast */
+.import-toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #0f172a;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-family: inherit;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 9999;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+.import-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
 /* Desktop Layout */
 @media (min-width: 768px) {
     .app-container {

@@ -21,6 +21,93 @@ const categoryConfig = {
     'Other': { emoji: '📍', cssClass: 'cat-Other' }
 };
 
+// Custom categories — stored as array of { name, emoji }
+let customCategories = JSON.parse(localStorage.getItem('mapfolio_custom_categories')) || [];
+
+// Emoji options for custom categories
+const CUSTOM_EMOJIS = ['🍺','🥐','🍷','🎭','🏋️','🎨','🛺','⛪','🎪','🏇','🎵','🌮','🍜','☕','🛶','🧖','🎿','🏄','🎬','🛒','🍦','🎂','🍕','🥗','🏰','🌊','🚴','🎳','🎻','🦁'];
+
+function saveCustomCategories() {
+    localStorage.setItem('mapfolio_custom_categories', JSON.stringify(customCategories));
+}
+
+function getAllCategories() {
+    const defaults = Object.keys(categoryConfig);
+    const customs = customCategories.map(c => c.name);
+    return [...defaults, ...customs];
+}
+
+function getCategoryConfig(name) {
+    if (categoryConfig[name]) return categoryConfig[name];
+    const custom = customCategories.find(c => c.name === name);
+    if (custom) return { emoji: custom.emoji, cssClass: 'cat-custom' };
+    return categoryConfig['Other'];
+}
+
+function populateCategoryDropdowns() {
+    const selects = [
+        document.getElementById('filter-category'),
+        document.getElementById('triage-category')
+    ];
+
+    selects.forEach((select, i) => {
+        // Save current value
+        const current = select.value;
+
+        // Clear and rebuild
+        select.innerHTML = '';
+
+        if (i === 0) {
+            // Filter dropdown — starts with "All"
+            select.innerHTML = '<option value="All">All Categories</option>';
+        } else {
+            // Triage dropdown — starts with prompt
+            select.innerHTML = '<option value="Unassigned">Select a Category</option>';
+        }
+
+        // Default categories
+        Object.keys(categoryConfig).forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = `${categoryConfig[name].emoji} ${name}`;
+            select.appendChild(opt);
+        });
+
+        // Custom categories
+        if (customCategories.length > 0) {
+            const divider = document.createElement('option');
+            divider.disabled = true;
+            divider.textContent = '── My Categories ──';
+            select.appendChild(divider);
+
+            customCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.name;
+                opt.textContent = `${cat.emoji} ${cat.name}`;
+                select.appendChild(opt);
+            });
+        }
+
+        // Add "Create new" option only on triage dropdown
+        if (i === 1) {
+            const divider = document.createElement('option');
+            divider.disabled = true;
+            divider.textContent = '──────────────';
+            select.appendChild(divider);
+
+            const createOpt = document.createElement('option');
+            createOpt.value = '__create__';
+            createOpt.textContent = '＋ Create new category';
+            select.appendChild(createOpt);
+        }
+
+        // Restore value if still valid
+        if ([...select.options].some(o => o.value === current)) {
+            select.value = current;
+        }
+    });
+}
+
 // Migration for old categories
 const categoryMigration = {
     'Hotel/Accommodation': 'Hotel',
@@ -63,6 +150,8 @@ const triageCategory = document.getElementById('triage-category');
 const triageStatus = document.getElementById('triage-status');
 
 // Initialize Map
+let clusterGroup = null;
+
 function initMap() {
     map = L.map('map').setView([0, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -70,7 +159,14 @@ function initMap() {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-
+    // Marker cluster group — groups nearby pins when zoomed out
+    clusterGroup = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true
+    });
+    map.addLayer(clusterGroup);
 
     if (allPlaces.length > 0) {
         applyFiltersAndRender();
@@ -78,63 +174,253 @@ function initMap() {
     }
 }
 
-// Handle File Upload
-fileUpload.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// Handle File Upload — supports JSON, KMZ, KML, CSV
+fileUpload.addEventListener('change', async function(e) {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    for (const file of files) {
+        const ext = file.name.split('.').pop().toLowerCase();
         try {
-            const data = JSON.parse(e.target.result);
-            if (data.features && Array.isArray(data.features)) {
-                processData(data.features);
+            if (ext === 'json') {
+                const text = await readFileAsText(file);
+                const data = JSON.parse(text);
+                if (data.features && Array.isArray(data.features)) {
+                    // Google Takeout GeoJSON format
+                    processGeoJSON(data.features);
+                } else if (Array.isArray(data) && data[0]?.extracted_coordinates) {
+                    // AI Studio parsed format
+                    processAIStudioJSON(data);
+                } else if (Array.isArray(data) && data[0]?.lat !== undefined && data[0]?.name) {
+                    // Geocoded JSON format (from process_csv script)
+                    processGeocodedJSON(data);
+                } else {
+                    alert(`${file.name}: Invalid JSON format.`);
+                }
+            } else if (ext === 'kmz') {
+                await processKMZ(file);
+            } else if (ext === 'kml') {
+                const text = await readFileAsText(file);
+                processKML(text, file.name.replace('.kml',''));
+            } else if (ext === 'csv') {
+                const text = await readFileAsText(file);
+                processCSV(text);
             } else {
-                alert('Invalid file format. Expected a Google Takeout "Saved Places.json".');
+                alert(`${file.name}: Unsupported format.`);
             }
-        } catch (error) {
-            console.error(error);
-            alert('Error parsing JSON file.');
+        } catch (err) {
+            console.error(err);
+            alert(`Error reading ${file.name}: ${err.message}`);
         }
-    };
-    reader.readAsText(file);
+    }
+    // Reset input so same file can be re-uploaded
+    fileUpload.value = '';
 });
 
-// Process Features Array
-function processData(features) {
+function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('File read failed'));
+        reader.readAsText(file);
+    });
+}
+
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('File read failed'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+// Process geocoded JSON format (output from process_csv.py script)
+function processGeocodedJSON(data) {
+    const newPlaces = data
+        .filter(item => item.lat && item.lng && item.lat !== 0 && item.lng !== 0)
+        .map((item, i) => ({
+            id: `geocoded-${i}-${item.lat}-${item.lng}`,
+            name: item.name || 'Unnamed Place',
+            address: item.address || '',
+            url: item.url || '#',
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lng)
+        }));
+
+    const added = mergeAndSave(newPlaces);
+    showImportToast(`Geocoded JSON: ${added} places imported`);
+}
+
+// Process AI Studio parsed format
+function processAIStudioJSON(data) {
+    const newPlaces = data
+        .filter(item => item.extracted_coordinates?.lat && item.extracted_coordinates?.lng)
+        .map(item => {
+            const lat = item.extracted_coordinates.lat;
+            const lng = item.extracted_coordinates.lng;
+
+            // Clean up bad names
+            let name = item.name || 'Unnamed Place';
+            // Skip YouTube links, image URLs saved as place names
+            if (name.includes('youtube.com') || name.includes('ytimg.com') ||
+                name.includes('googleusercontent.com') || name.includes('lh4.google')) {
+                name = 'Unnamed Place';
+            }
+            // Clean up names with trailing URLs
+            if (name.includes(',,http')) {
+                name = name.split(',,')[0].trim();
+            }
+
+            return {
+                id: item.place_id || `ai-${lat}-${lng}`,
+                name,
+                address: item.notes || '',
+                url: item.raw_url || '#',
+                lat,
+                lng
+            };
+        })
+        // Filter out places with clearly bad names
+        .filter(p => p.name !== 'Place' && p.name.length > 0);
+
+    const added = mergeAndSave(newPlaces);
+    showImportToast(`AI Studio export: ${added} places imported`);
+}
+
+// Process Google Takeout GeoJSON
+function processGeoJSON(features) {
     const newPlaces = features.map(feature => {
         const props = feature.properties || {};
         const geom = feature.geometry || {};
         const coords = geom.coordinates || [0, 0];
         const location = props.location || {};
-        
-        // Google puts Longitude first in coordinates array
         const lng = coords[0];
         const lat = coords[1];
-        
-        let name = location.name;
-        if (!name) {
-            name = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        }
-
+        let name = location.name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         return {
-            id: props.google_maps_url || `${lat}-${lng}`, // Fallback ID
-            name: name,
+            id: props.google_maps_url || `geojson-${lat}-${lng}`,
+            name,
             address: location.address || '',
             url: props.google_maps_url || '#',
-            lat: lat,
-            lng: lng
+            lat, lng
         };
     });
+    mergeAndSave(newPlaces);
+}
 
+// Process KMZ file (zip containing doc.kml)
+async function processKMZ(file) {
+    const buffer = await readFileAsArrayBuffer(file);
+    const zip = await JSZip.loadAsync(buffer);
+    const kmlFile = zip.file('doc.kml');
+    if (!kmlFile) throw new Error('No doc.kml found inside KMZ');
+    const kmlText = await kmlFile.async('string');
+    const mapName = file.name.replace('.kmz', '');
+    processKML(kmlText, mapName);
+}
+
+// Process KML text
+function processKML(kmlText, sourceName) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(kmlText, 'text/xml');
+    const placemarks = doc.querySelectorAll('Placemark');
+    const newPlaces = [];
+
+    placemarks.forEach(pm => {
+        const name = pm.querySelector('name')?.textContent?.trim() || 'Unnamed Place';
+        const coordEl = pm.querySelector('coordinates');
+        if (!coordEl) return;
+
+        const parts = coordEl.textContent.trim().split(',');
+        if (parts.length < 2) return;
+
+        const lng = parseFloat(parts[0]);
+        const lat = parseFloat(parts[1]);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        // Try to get folder name as a hint for category
+        const folder = pm.closest('Folder');
+        const folderName = folder?.querySelector('name')?.textContent?.trim() || '';
+
+        const id = `kml-${sourceName}-${lat.toFixed(5)}-${lng.toFixed(5)}`;
+
+        newPlaces.push({
+            id,
+            name,
+            address: folderName ? `${folderName} · ${sourceName}` : sourceName,
+            url: '#',
+            lat,
+            lng,
+            sourceFolder: folderName
+        });
+    });
+
+    const added = mergeAndSave(newPlaces);
+    showImportToast(`${sourceName}: ${added} places imported`);
+}
+
+// Process CSV file — expects columns: name, lat, lng (and optionally address)
+function processCSV(text) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return;
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+    const nameIdx = headers.findIndex(h => h.includes('name') || h.includes('title'));
+    const latIdx = headers.findIndex(h => h.includes('lat'));
+    const lngIdx = headers.findIndex(h => h.includes('lon') || h.includes('lng'));
+    const addrIdx = headers.findIndex(h => h.includes('addr') || h.includes('address'));
+
+    if (latIdx === -1 || lngIdx === -1) {
+        alert('CSV must have latitude and longitude columns.');
+        return;
+    }
+
+    const newPlaces = [];
+    lines.slice(1).forEach((line, i) => {
+        // Handle quoted CSV values
+        const cols = line.match(/(".*?"|[^,]+)(?=,|$)/g)?.map(c => c.replace(/"/g, '').trim()) || line.split(',').map(c => c.trim());
+        const lat = parseFloat(cols[latIdx]);
+        const lng = parseFloat(cols[lngIdx]);
+        if (isNaN(lat) || isNaN(lng)) return;
+        newPlaces.push({
+            id: `csv-${i}-${lat}-${lng}`,
+            name: nameIdx >= 0 ? cols[nameIdx] : `Place ${i + 1}`,
+            address: addrIdx >= 0 ? cols[addrIdx] : '',
+            url: '#',
+            lat, lng
+        });
+    });
+
+    const added = mergeAndSave(newPlaces);
+    showImportToast(`CSV: ${added} places imported`);
+}
+
+// Merge new places with existing, avoid duplicates
+function mergeAndSave(newPlaces) {
     const existingIds = new Set(allPlaces.map(p => p.id));
-    const uniqueNew = newPlaces.filter(p => !existingIds.has(p.id));
-    allPlaces = [...allPlaces, ...uniqueNew];
+    const unique = newPlaces.filter(p => !existingIds.has(p.id));
+    allPlaces = [...allPlaces, ...unique];
     localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
-
     applyFiltersAndRender();
     fitMapToBounds();
+    return unique.length;
 }
+
+// Toast notification for import feedback
+function showImportToast(message) {
+    let toast = document.getElementById('import-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'import-toast';
+        toast.className = 'import-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = `✅ ${message}`;
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
 
 // Main Render Logic
 function applyFiltersAndRender() {
@@ -188,9 +474,7 @@ function renderSidebar(places) {
 
         li.addEventListener('click', () => {
             openTriage(place);
-            map.setView([place.lat, place.lng], 16);
-            
-            // Highlight active item
+            map.flyTo([place.lat, place.lng], 14, { duration: 1.2 });
             document.querySelectorAll('.place-item').forEach(el => el.classList.remove('active'));
             li.classList.add('active');
         });
@@ -201,13 +485,13 @@ function renderSidebar(places) {
 
 // Render Map Markers
 function renderMap(places) {
-    // Clear existing markers
-    markers.forEach(m => map.removeLayer(m));
+    // Clear existing markers from cluster group
+    clusterGroup.clearLayers();
     markers = [];
 
     places.forEach(place => {
         const data = getTriageData(place.id);
-        const catConf = categoryConfig[data.category] || categoryConfig['Other'];
+        const catConf = getCategoryConfig(data.category);
         const statusClass = `status-${data.status.replace(/ /g, '-')}`;
 
         const customIcon = L.divIcon({
@@ -217,14 +501,14 @@ function renderMap(places) {
             iconAnchor: [16, 16]
         });
 
-        const marker = L.marker([place.lat, place.lng], { icon: customIcon }).addTo(map);
-        
+        const marker = L.marker([place.lat, place.lng], { icon: customIcon });
+
         marker.on('click', () => {
             openTriage(place);
-            // Also highlight in sidebar if visible
             applyFiltersAndRender();
         });
 
+        clusterGroup.addLayer(marker);
         markers.push(marker);
     });
 }
@@ -349,15 +633,17 @@ function addNominatimPlace(result, name, address) {
         localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
     }
     
-    // Hide panel and clear
-    nominatimPanel.classList.add('hidden');
-    nominatimInput.value = '';
+    // Clear search bar and results
+    localSearchInput.value = '';
     nominatimResultsList.innerHTML = '';
-    
+    searchAddHint.classList.add('hidden');
+
+    // Render first, then fly to location and open triage
     applyFiltersAndRender();
     const addedPlace = allPlaces.find(p => p.id === id);
-    openTriage(addedPlace);
-    map.setView([lat, lng], 16);
+    
+    map.flyTo([lat, lng], 14, { duration: 1.2 });
+    setTimeout(() => openTriage(addedPlace), 400);
 }
 
 // Event Listeners
