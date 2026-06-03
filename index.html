@@ -90,7 +90,10 @@
                 <button id="close-triage" class="close-btn">&times;</button>
                 <input type="text" id="triage-title" class="triage-title-input" placeholder="Place Name" />
                 <input type="text" id="triage-address" class="triage-address-input" placeholder="Address" />
-                <a id="triage-url" href="#" target="_blank" class="triage-link">View on Google Maps</a>
+                
+                <div class="gmaps-link-container">
+                    <a id="triage-url" href="#" target="_blank" class="triage-link">🌐 View on Google Maps →</a>
+                </div>
                 
                 <div class="triage-form">
                     <div class="coordinates-row" style="display: flex; gap: 0.5rem; width: 100%;">
@@ -105,13 +108,13 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Category</label>
+                        <label>Category Layout Mapping</label>
                         <select id="triage-category">
                             <option value="Unassigned">Select a Category</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Status</label>
+                        <label>Visits Tracker Status</label>
                         <select id="triage-status">
                             <option value="Unsorted">Unsorted</option>
                             <option value="Want to Try">Want to Try</option>
@@ -121,7 +124,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Folder Assignment</label>
+                        <label>Assigned Folder Source</label>
                         <select id="triage-folder">
                             <option value="Uncategorized">Uncategorized / General</option>
                         </select>
@@ -129,17 +132,17 @@
                 </div>
 
                 <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                    <button id="save-coords-btn" class="action-btn" style="flex: 2; background-color: var(--primary); color: white; border: none; padding: 0.6rem; border-radius: var(--radius-md); cursor: pointer; font-weight: 500;">💾 Save Modifications</button>
+                    <button id="save-coords-btn" class="action-btn save-modifications-btn">💾 Save layout modifications</button>
                 </div>
 
-                <div id="delete-confirm" class="delete-confirm hidden" style="margin-top: 0.5rem;">
-                    <p>Are you sure you want to delete this place?</p>
+                <div id="delete-confirm" class="delete-confirm hidden">
+                    <p>Confirm entry elimination?</p>
                     <div class="delete-confirm-buttons">
-                        <button id="confirm-delete-btn" class="action-btn confirm-delete-btn">Yes, Delete</button>
-                        <button id="cancel-delete-btn" class="action-btn cancel-delete-btn">Cancel</button>
+                        <button id="confirm-delete-btn" class="action-btn confirm-yes-btn">Yes</button>
+                        <button id="cancel-delete-btn" class="action-btn confirm-no-btn">No</button>
                     </div>
                 </div>
-                <button id="delete-place-btn" class="delete-place-btn" style="margin-top: 0.5rem;">🗑️ Delete this place</button>
+                <button id="delete-place-btn" class="delete-place-btn">🗑️ Delete spot from database</button>
             </div>
         </section>
     </main>

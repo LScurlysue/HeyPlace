@@ -22,8 +22,6 @@ const categoryConfig = {
     'Other': { emoji: '📍', cssClass: 'cat-Other' }
 };
 
-let customCategories = JSON.parse(localStorage.getItem('mapfolio_custom_categories')) || [];
-
 function saveState() {
     localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
     localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
@@ -101,7 +99,17 @@ fileUpload.addEventListener('change', async function(e) {
             processCSV(text, file.name.replace('.csv',''));
         } else if (ext === 'json') {
             const data = JSON.parse(text);
-            if (Array.isArray(data)) processGeocodedJSON(data);
+            if (Array.isArray(data)) {
+                processGeocodedJSON(data);
+            } else if (data.features && Array.isArray(data.features)) {
+                // Support standard GeoJSON structure if needed
+                processGeocodedJSON(data.features.map(f => ({
+                    name: f.properties?.name || f.properties?.title,
+                    lat: f.geometry?.coordinates?.[1],
+                    lng: f.geometry?.coordinates?.[0],
+                    address: f.properties?.address
+                })));
+            }
         }
     }
     fileUpload.value = '';
@@ -138,7 +146,6 @@ function processCSV(text, filenameContext) {
 
         const placeId = `imported-${filenameContext}-${i}-${Date.now()}`;
 
-        // Flexible Fallback Strategy
         if (isNaN(lat) || isNaN(lng) || lat === 0) {
             const cleanQuery = `${name}, ${filenameContext}`;
             fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}`)
@@ -155,12 +162,12 @@ function processCSV(text, filenameContext) {
                             lng: parseFloat(matched.lon)
                         });
                     } else {
-                        // Keep it inside the session collection map view array as safe fallback
                         allPlaces.push({ id: placeId, name, address, url, lat: 0, lng: 0 });
                     }
                     saveState();
                     applyFiltersAndRender();
-                }).catch(err => {
+                    fitMapToBounds();
+                }).catch(() => {
                     allPlaces.push({ id: placeId, name, address, url, lat: 0, lng: 0 });
                     saveState();
                     applyFiltersAndRender();
@@ -172,6 +179,7 @@ function processCSV(text, filenameContext) {
 
     saveState();
     applyFiltersAndRender();
+    fitMapToBounds();
     showImportToast(`Import Processing complete.`);
 }
 
@@ -190,6 +198,8 @@ function processGeocodedJSON(data) {
     });
     saveState();
     applyFiltersAndRender();
+    fitMapToBounds(); // Fix: Frame view over newly imported dataset points
+    showImportToast(`Imported ${data.length} items from JSON.`);
 }
 
 function renderFoldersList() {
@@ -287,7 +297,6 @@ function renderSidebarList(places) {
         const catConf = categoryConfig[data.category] || categoryConfig['Other'];
         const statusClass = `status-${data.status.replace(/ /g, '-')}`;
 
-        // If coordinates are zero/missing, add an indicator label next to the item name
         const missingCoordinatesBadge = (place.lat === 0 && place.lng === 0) ? ' <span style="color:var(--status-red); font-size:11px; font-weight:600;">⚠️ Unpinned</span>' : '';
 
         li.innerHTML = `
@@ -315,7 +324,7 @@ function renderMapPins(places) {
     markers = [];
 
     places.forEach(place => {
-        if (place.lat === 0 && place.lng === 0) return; // Skip rendering broken points on map completely until saved
+        if (place.lat === 0 && place.lng === 0) return;
 
         const data = triageData[place.id] || { category: 'Other', status: 'Unsorted' };
         const catConf = categoryConfig[data.category] || categoryConfig['Other'];
@@ -346,10 +355,10 @@ function openTriagePanel(place) {
     document.getElementById('triage-lng').value = place.lng === 0 ? '' : place.lng;
     
     const urlBtn = document.getElementById('triage-url');
-    if (place.url === '#') {
-        urlBtn.style.display = 'none';
+    // Generates link context using address/coordinates if fallback URL is missing
+    if (!place.url || place.url === '#') {
+        urlBtn.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' ' + place.address)}`;
     } else {
-        urlBtn.style.display = 'inline-block';
         urlBtn.href = place.url;
     }
 
@@ -376,22 +385,15 @@ function updateTriageData() {
         folder: document.getElementById('triage-folder').value
     };
     saveState();
-    applyFiltersAndRender();
 }
 
-// Handle Manual Coordinate Saving Entry
+// Fixed Update Engine Trigger
 document.getElementById('save-coords-btn').addEventListener('click', () => {
     if (!activePlace) return;
     
-    const inputtedLat = parseFloat(document.getElementById('triage-lat').value);
-    const inputtedLng = parseFloat(document.getElementById('triage-lng').value);
+    const inputtedLat = parseFloat(document.getElementById('triage-lat').value) || 0;
+    const inputtedLng = parseFloat(document.getElementById('triage-lng').value) || 0;
 
-    if (isNaN(inputtedLat) || isNaN(inputtedLng)) {
-        alert("Please provide valid numeric coordinates first!");
-        return;
-    }
-
-    // Update coordinates in original dataset
     const matchedIdx = allPlaces.findIndex(p => p.id === activePlace.id);
     if (matchedIdx >= 0) {
         allPlaces[matchedIdx].lat = inputtedLat;
@@ -404,15 +406,17 @@ document.getElementById('save-coords-btn').addEventListener('click', () => {
     saveState();
     applyFiltersAndRender();
     
-    // Pan directly over to the newly pinned spot
-    map.flyTo([inputtedLat, inputtedLng], 14, { duration: 1.2 });
-    showImportToast("Coordinates saved successfully!");
+    if (inputtedLat !== 0 && inputtedLng !== 0) {
+        map.flyTo([inputtedLat, inputtedLng], 14, { duration: 1.2 });
+    }
+    showImportToast("Layout modifications saved successfully!");
 });
 
 function fitMapToBounds() {
-    if (allPlaces.length === 0) return;
     const validBounds = allPlaces.filter(p => p.lat !== 0 && !isNaN(p.lat)).map(p => [p.lat, p.lng]);
-    if (validBounds.length > 0) map.fitBounds(L.latLngBounds(validBounds), { padding: [50, 50] });
+    if (validBounds.length > 0 && map) {
+        map.fitBounds(L.latLngBounds(validBounds), { padding: [50, 50], maxZoom: 15 });
+    }
 }
 
 function showImportToast(message) {
@@ -423,7 +427,7 @@ function showImportToast(message) {
         toast.className = 'import-toast';
         document.body.appendChild(toast);
     }
-    toast.textContent = `` + message;
+    toast.textContent = message;
     toast.classList.add('visible');
     setTimeout(() => toast.classList.remove('visible'), 3000);
 }
