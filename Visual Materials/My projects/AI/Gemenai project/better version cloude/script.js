@@ -150,18 +150,56 @@ if (fileUpload) {
                     processCSV(text, file.name.replace('.csv',''));
                } else if (ext === 'json') {
     const data = JSON.parse(text);
+    const folderName = file.name.replace('.json', '');
     if (Array.isArray(data)) {
-        processGeocodedJSON(data);
+        processGeocodedJSON(data, folderName);
     } else if (data.features && Array.isArray(data.features)) {
-        // Google Takeout GeoJSON format
-        const normalized = data.features.map(f => ({
-    name: f.properties?.location?.name || f.properties?.name || 'Unnamed Place',
-    address: f.properties?.location?.address || '',
-    url: f.properties?.google_maps_url || '#',
-    lat: f.geometry?.coordinates?.[1] ?? 0,
-    lng: f.geometry?.coordinates?.[0] ?? 0
-}));
-        processGeocodedJSON(normalized);
+        // Google Takeout GeoJSON (Saved Places, Reviews, etc.)
+        const normalized = data.features.map(f => {
+            const props = f.properties || {};
+            const url = props.google_maps_url || '#';
+
+            // --- Name ---
+            let name = props.location?.name || props.name || '';
+            if (!name) {
+                // Try to extract from ?q=Place+Name&ftid= pattern
+                const qMatch = url.match(/[?&]q=([^&]+)/);
+                if (qMatch) {
+                    const decoded = decodeURIComponent(qMatch[1].replace(/\+/g, ' '));
+                    // If it looks like coordinates (numbers, comma), skip as name
+                    if (!/^-?\d+\.?\d*,-?\d+\.?\d*$/.test(decoded.trim())) {
+                        name = decoded;
+                    }
+                }
+            }
+            if (!name) name = 'Unnamed Place';
+
+            // --- Coordinates ---
+            let lat = f.geometry?.coordinates?.[1] ?? 0;
+            let lng = f.geometry?.coordinates?.[0] ?? 0;
+            if ((lat === 0 && lng === 0) || isNaN(lat) || isNaN(lng)) {
+                // Try ?q=lat,lng from URL
+                const coordMatch = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)(?:&|$)/);
+                if (coordMatch) {
+                    lat = parseFloat(coordMatch[1]);
+                    lng = parseFloat(coordMatch[2]);
+                }
+            }
+
+            // --- Status from star rating (Reviews.json) ---
+            let status = 'Been There';
+            const stars = props.five_star_rating_published;
+            if (stars !== undefined) {
+                if (stars >= 5) status = 'Loved It';
+                else if (stars === 4) status = 'Been There';
+                else if (stars === 3) status = 'Meh';
+                else if (stars <= 2) status = 'Skip It';
+            }
+
+            return { name, address: props.location?.address || '', url, lat, lng, status };
+        }).filter(f => f.name !== 'Unnamed Place' || (f.lat !== 0 && f.lng !== 0));
+
+        processGeocodedJSON(normalized, folderName);
     }
 }
             }
@@ -372,30 +410,62 @@ function processCSV(text, filenameContext) {
     fitMapToBounds();
     showImportToast(`Import processing complete.`);
 }
-function processGeocodedJSON(data) {
+function processGeocodedJSON(data, folderName) {
+    folderName = folderName || 'Imported';
+    if (!customFolders.includes(folderName)) customFolders.push(folderName);
+
     let importedCount = 0;
     data.forEach((item, i) => {
         const name = item.name || 'Unnamed Place';
-      const url = item.url || '#';
-const isDuplicate = url !== '#' && allPlaces.some(p => p.url === url);
-if (isDuplicate) return;
+        const url = item.url || '#';
 
-        const lat = item.lat || item.coordinates?.lat || item.extracted_coordinates?.lat;
-        const lng = item.lng || item.coordinates?.lng || item.extracted_coordinates?.lng;
+        // Deduplicate by URL or by name+folder
+        const isDuplicate =
+            (url !== '#' && allPlaces.some(p => p.url === url)) ||
+            allPlaces.some(p => p.name.toLowerCase().trim() === name.toLowerCase().trim() && triageData[p.id]?.folder === folderName);
+        if (isDuplicate) return;
+
+        const lat = parseFloat(item.lat || item.coordinates?.lat || 0);
+        const lng = parseFloat(item.lng || item.coordinates?.lng || 0);
+        const placeId = item.id || `json-${folderName}-${i}-${Date.now()}`;
+
         allPlaces.push({
-            id: item.id || `json-item-${i}-${Date.now()}`,
-            name: name,
+            id: placeId,
+            name,
             address: item.address || item.notes || '',
-            url: item.url || '#',
-            lat: lat ? parseFloat(lat) : 0,
-            lng: lng ? parseFloat(lng) : 0
+            url,
+            lat: isNaN(lat) ? 0 : lat,
+            lng: isNaN(lng) ? 0 : lng
         });
+
+        triageData[placeId] = {
+            category: detectCategory(name, item.address || ''),
+            status: item.status || 'Unsorted',
+            folder: folderName
+        };
+
+        // Geocode if no coordinates
+        if (!lat || !lng) {
+            geocodePlace(name, (result) => {
+                if (result) {
+                    const idx = allPlaces.findIndex(p => p.id === placeId);
+                    if (idx >= 0) {
+                        allPlaces[idx].lat = parseFloat(result.lat);
+                        allPlaces[idx].lng = parseFloat(result.lon);
+                        saveState();
+                        applyFiltersAndRender();
+                    }
+                }
+            });
+        }
+
         importedCount++;
     });
     saveState();
+    populateDropdowns();
     applyFiltersAndRender();
     fitMapToBounds();
-    showImportToast(`Imported ${importedCount} new places from JSON (${data.length - importedCount} duplicates skipped).`);
+    showImportToast(`Imported ${importedCount} new places from JSON (${data.length - importedCount} skipped).`);
 }
 
 function renderFoldersList() {
