@@ -2,6 +2,7 @@
 let allPlaces = JSON.parse(localStorage.getItem('mapfolio_places')) || [];
 let triageData = JSON.parse(localStorage.getItem('mapfolio_triage')) || {};
 let customFolders = JSON.parse(localStorage.getItem('mapfolio_folders')) || ["Want to Go", "Done"];
+let customCategories = JSON.parse(localStorage.getItem('mapfolio_custom_categories')) || [];
 let activePlace = null;
 let activeFolderFilter = null;
 let map = null;
@@ -30,6 +31,14 @@ const categoryConfig = {
     'Toilets':             { emoji: '🚻', cssClass: 'cat-Toilets' },
     'Other':               { emoji: '📍', cssClass: 'cat-Other' }
 };
+
+// Resolve category config — built-in or custom
+function getCatConf(categoryName) {
+    if (categoryConfig[categoryName]) return categoryConfig[categoryName];
+    const custom = customCategories.find(c => c.name === categoryName);
+    if (custom) return { emoji: custom.emoji, cssClass: 'cat-Custom' };
+    return categoryConfig['Other'];
+}
 
 // Auto-category keyword detection
 function detectCategory(name, address) {
@@ -61,6 +70,7 @@ function saveState() {
     localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
     localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
     localStorage.setItem('mapfolio_folders', JSON.stringify(customFolders));
+    localStorage.setItem('mapfolio_custom_categories', JSON.stringify(customCategories));
 }
 
 function populateDropdowns() {
@@ -77,6 +87,13 @@ function populateDropdowns() {
             const opt = document.createElement('option');
             opt.value = name;
             opt.textContent = `${categoryConfig[name].emoji} ${name}`;
+            select.appendChild(opt);
+        });
+        // Custom categories
+        customCategories.forEach(cc => {
+            const opt = document.createElement('option');
+            opt.value = cc.name;
+            opt.textContent = `${cc.emoji} ${cc.name}`;
             select.appendChild(opt);
         });
         if (current) select.value = current;
@@ -593,6 +610,16 @@ function applyFiltersAndRender() {
 
     renderMapPins(filteredPlaces);
     renderUnpinned();
+
+    // Update footer count
+    const footer = document.getElementById('places-footer');
+    if (footer) {
+        const total = allPlaces.length;
+        const shown = filteredPlaces.filter(p => p.lat !== 0 || p.lng !== 0).length;
+        footer.textContent = total === shown
+            ? `📍 ${total.toLocaleString()} places`
+            : `📍 Showing ${shown.toLocaleString()} of ${total.toLocaleString()} places`;
+    }
 }
 
 function renderUnpinned() {
@@ -637,7 +664,7 @@ function renderSidebarList(places) {
         li.className = 'place-item';
         if (activePlace && activePlace.id === place.id) li.classList.add('active');
 
-        const catConf = categoryConfig[data.category] || categoryConfig['Other'];
+        const catConf = getCatConf(data.category);
         const statusClass = `status-${data.status.replace(/ /g, '-')}`;
 
         const missingCoordinatesBadge = (place.lat === 0 && place.lng === 0) ? ' <span style="color:var(--status-red); font-size:11px; font-weight:600;">⚠️ Unpinned</span>' : '';
@@ -670,7 +697,7 @@ function renderMapPins(places) {
         if (place.lat === 0 && place.lng === 0) return;
 
         const data = triageData[place.id] || { category: 'Other', status: 'Unsorted' };
-        const catConf = categoryConfig[data.category] || categoryConfig['Other'];
+        const catConf = getCatConf(data.category);
         const statusClass = `status-${data.status.replace(/ /g, '-')}`;
 
         const markerIcon = L.divIcon({
@@ -783,6 +810,23 @@ document.getElementById('unpinned-header').addEventListener('click', () => {
 document.getElementById('filter-category').addEventListener('change', applyFiltersAndRender);
 document.getElementById('filter-status').addEventListener('change', applyFiltersAndRender);
 document.getElementById('close-triage').addEventListener('click', closeTriage);
+
+document.getElementById('add-category-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const name = prompt('New category name:');
+    if (!name || !name.trim()) return;
+    const emoji = prompt('Choose an emoji for it (e.g. 🎨):', '📌');
+    if (!emoji) return;
+    const trimmed = name.trim();
+    if (customCategories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+        alert('That category already exists.');
+        return;
+    }
+    customCategories.push({ name: trimmed, emoji: emoji.trim() || '📌' });
+    saveState();
+    populateDropdowns();
+    document.getElementById('triage-category').value = trimmed;
+});
 
 // --- Smart search: filter existing + find new places via Nominatim ---
 const searchInput = document.getElementById('local-search-input');

@@ -58,6 +58,7 @@
                         <label for="filter-status">Status</label>
                         <select id="filter-status">
                             <option value="All">All Statuses</option>
+                            <option value="Favourite">Favourite ⭐</option>
                             <option value="Want to Go">Want to Go 🔵</option>
                             <option value="Been There">Been There 🟡</option>
                             <option value="Loved It">Loved It 🟢</option>
@@ -86,6 +87,10 @@
                 </div>
                 <ul id="unpinned-list" class="unpinned-list hidden"></ul>
             </div>
+
+            <div class="sidebar-footer">
+                <span id="places-footer">📍 0 places</span>
+            </div>
         </aside>
 
         <section class="map-container">
@@ -113,7 +118,10 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Category Layout Mapping</label>
+                        <label style="display:flex; justify-content:space-between; align-items:center;">
+                            Category
+                            <button id="add-category-btn" class="icon-action-btn" title="Add custom category" style="font-size:0.8rem;">➕ New</button>
+                        </label>
                         <select id="triage-category">
                             <option value="Unassigned">Select a Category</option>
                         </select>
@@ -122,6 +130,7 @@
                         <label>Visits Tracker Status</label>
                         <select id="triage-status">
                             <option value="Unsorted">⚪ Unsorted</option>
+                            <option value="Favourite">⭐ Favourite</option>
                             <option value="Want to Go">🔵 Want to Go</option>
                             <option value="Been There">🟡 Been There</option>
                             <option value="Loved It">🟢 Loved It</option>

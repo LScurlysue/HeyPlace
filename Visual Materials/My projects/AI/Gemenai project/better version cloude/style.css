@@ -195,6 +195,21 @@ body {
 .status-Meh         { background-color: #f97316 !important; }
 .status-Skip-It     { background-color: var(--status-red) !important; }
 .status-Unsorted    { background-color: var(--status-grey) !important; }
+.status-Favourite   { background-color: #a855f7 !important; }
+.cat-Custom         { background-color: #0ea5e9 !important; }
+
+/* Sidebar footer */
+.sidebar-footer {
+    padding: 0.65rem 1.25rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    background: var(--bg-panel);
+    text-align: center;
+    flex-shrink: 0;
+    margin-top: auto;
+}
 
 /* Unpinned section */
 .unpinned-section {
