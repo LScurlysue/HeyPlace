@@ -811,21 +811,63 @@ document.getElementById('filter-category').addEventListener('change', applyFilte
 document.getElementById('filter-status').addEventListener('change', applyFiltersAndRender);
 document.getElementById('close-triage').addEventListener('click', closeTriage);
 
+function renderCustomCategoryList() {
+    const container = document.getElementById('custom-categories-list');
+    container.innerHTML = '';
+
+    if (customCategories.length === 0) {
+        container.innerHTML = '<div style="font-size:0.78rem;opacity:0.5;padding:0.3rem 0;">No custom categories yet.</div>';
+    } else {
+        customCategories.forEach((cc, idx) => {
+            const row = document.createElement('div');
+            row.className = 'custom-cat-row';
+            row.innerHTML = `<span>${cc.emoji} ${cc.name}</span><button class="custom-cat-delete" data-idx="${idx}" title="Delete">🗑️</button>`;
+            row.querySelector('.custom-cat-delete').addEventListener('click', () => {
+                if (!confirm(`Delete category "${cc.name}"? Places using it will be set to Other.`)) return;
+                // Reset places using this category
+                Object.keys(triageData).forEach(id => {
+                    if (triageData[id].category === cc.name) triageData[id].category = 'Other';
+                });
+                customCategories.splice(idx, 1);
+                saveState();
+                populateDropdowns();
+                renderCustomCategoryList();
+                applyFiltersAndRender();
+            });
+            container.appendChild(row);
+        });
+    }
+
+    // Add new row
+    const addRow = document.createElement('div');
+    addRow.style.cssText = 'display:flex;gap:0.4rem;margin-top:0.4rem;';
+    addRow.innerHTML = `
+        <input id="new-cat-emoji" placeholder="😀" style="width:44px;padding:0.3rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);text-align:center;" maxlength="2"/>
+        <input id="new-cat-name" placeholder="Category name" style="flex:1;padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);"/>
+        <button id="new-cat-save" style="padding:0.3rem 0.6rem;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;">Add</button>
+    `;
+    container.appendChild(addRow);
+
+    document.getElementById('new-cat-save').addEventListener('click', () => {
+        const name = document.getElementById('new-cat-name').value.trim();
+        const emoji = document.getElementById('new-cat-emoji').value.trim() || '📌';
+        if (!name) return;
+        if (customCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+            alert('That category already exists.'); return;
+        }
+        customCategories.push({ name, emoji });
+        saveState();
+        populateDropdowns();
+        document.getElementById('triage-category').value = name;
+        renderCustomCategoryList();
+    });
+}
+
 document.getElementById('add-category-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    const name = prompt('New category name:');
-    if (!name || !name.trim()) return;
-    const emoji = prompt('Choose an emoji for it (e.g. 🎨):', '📌');
-    if (!emoji) return;
-    const trimmed = name.trim();
-    if (customCategories.some(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
-        alert('That category already exists.');
-        return;
-    }
-    customCategories.push({ name: trimmed, emoji: emoji.trim() || '📌' });
-    saveState();
-    populateDropdowns();
-    document.getElementById('triage-category').value = trimmed;
+    const container = document.getElementById('custom-categories-list');
+    const isHidden = container.classList.toggle('hidden');
+    if (!isHidden) renderCustomCategoryList();
 });
 
 // --- Smart search: filter existing + find new places via Nominatim ---

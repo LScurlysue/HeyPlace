@@ -198,6 +198,31 @@ body {
 .status-Favourite   { background-color: #a855f7 !important; }
 .cat-Custom         { background-color: #0ea5e9 !important; }
 
+.custom-categories-list {
+    margin-top: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    background: var(--bg-main);
+    font-size: 0.82rem;
+}
+.custom-cat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.1rem;
+    border-bottom: 1px solid var(--border);
+}
+.custom-cat-row:last-of-type { border-bottom: none; }
+.custom-cat-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    opacity: 0.6;
+}
+.custom-cat-delete:hover { opacity: 1; }
+
 /* Sidebar footer */
 .sidebar-footer {
     padding: 0.65rem 1.25rem;
