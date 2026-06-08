@@ -33,14 +33,16 @@
             </section>
 
             <section class="upload-section">
-                <div class="action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
-                    <label for="file-upload" class="action-btn upload-btn" style="flex: 1;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        Import Places
-                    </label>
-                    <input id="file-upload" type="file" accept=".json,.kmz,.kml,.csv" multiple style="display: none;" />
-                </div>
-                <p class="upload-hint">Supports: Google Takeout JSON · KMZ/KML · CSV</p>
+                <label for="file-upload" class="import-btn">
+                    <span class="import-btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </span>
+                    <span class="import-btn-text">
+                        <span class="import-btn-title">Import Places</span>
+                        <span class="import-btn-hint">JSON · KMZ / KML · CSV</span>
+                    </span>
+                </label>
+                <input id="file-upload" type="file" accept=".json,.kmz,.kml,.csv" multiple style="display: none;" />
             </section>
 
             <section class="filters-section section-block">
@@ -56,11 +58,12 @@
                         <label for="filter-status">Status</label>
                         <select id="filter-status">
                             <option value="All">All Statuses</option>
-                            <option value="Want to Try">Want to Try (Blue)</option>
-                            <option value="Been There">Been There (Yellow)</option>
-                            <option value="Loved It">Loved It (Green)</option>
-                            <option value="Skip It">Skip It (Red)</option>
-                            <option value="Unsorted">Unsorted (Grey)</option>
+                            <option value="Want to Go">Want to Go 🔵</option>
+                            <option value="Been There">Been There 🟡</option>
+                            <option value="Loved It">Loved It 🟢</option>
+                            <option value="Meh">Meh 🟠</option>
+                            <option value="Skip It">Skip It 🔴</option>
+                            <option value="Unsorted">Unsorted ⚪</option>
                         </select>
                     </div>
                 </div>
@@ -76,14 +79,13 @@
     </div>
     <ul id="folders-list" class="folders-list inline-scroll" style="list-style: none; padding: 0; margin: 0;"></ul>
 </section>
-            <section class="places-section section-block">
-                <div class="places-header">
-                    <h2>Places <span id="place-count">(0)</span></h2>
+            <div id="unpinned-section" class="unpinned-section hidden">
+                <div id="unpinned-header" class="unpinned-header">
+                    <span>⚠️ Unpinned places</span>
+                    <span id="unpinned-count" class="unpinned-count">0</span>
                 </div>
-                <ul id="places-list" class="places-list main-list-scroll">
-                    <div class="empty-state">Upload a file to see your places here.</div>
-                </ul>
-            </section>
+                <ul id="unpinned-list" class="unpinned-list hidden"></ul>
+            </div>
         </aside>
 
         <section class="map-container">
@@ -119,11 +121,12 @@
                     <div class="form-group">
                         <label>Visits Tracker Status</label>
                         <select id="triage-status">
-                            <option value="Unsorted">Unsorted</option>
-                            <option value="Want to Try">Want to Try</option>
-                            <option value="Been There">Been There</option>
-                            <option value="Loved It">Loved It</option>
-                            <option value="Skip It">Skip It</option>
+                            <option value="Unsorted">⚪ Unsorted</option>
+                            <option value="Want to Go">🔵 Want to Go</option>
+                            <option value="Been There">🟡 Been There</option>
+                            <option value="Loved It">🟢 Loved It</option>
+                            <option value="Meh">🟠 Meh</option>
+                            <option value="Skip It">🔴 Skip It</option>
                         </select>
                     </div>
                     <div class="form-group">

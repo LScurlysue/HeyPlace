@@ -74,6 +74,60 @@ body {
     border-bottom: 1px solid var(--border);
 }
 
+/* Import button */
+.import-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.35);
+}
+.import-btn:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
+}
+.import-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+.import-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+.import-btn-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.import-btn-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+.import-btn-hint {
+    font-size: 0.7rem;
+    opacity: 0.75;
+    font-weight: 400;
+}
+[data-theme="dark"] .import-btn {
+    box-shadow: 0 3px 12px rgba(124, 58, 237, 0.4);
+}
+
 .section-block {
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border);
@@ -135,10 +189,61 @@ body {
 
 .emoji-marker:hover { transform: scale(1.12); }
 .status-Want-to-Try { background-color: var(--status-blue) !important; }
-.status-Been-There { background-color: var(--status-amber) !important; }
-.status-Loved-It { background-color: var(--status-green) !important; }
-.status-Skip-It { background-color: var(--status-red) !important; }
-.status-Unsorted { background-color: var(--status-grey) !important; }
+.status-Want-to-Go  { background-color: var(--status-blue) !important; }
+.status-Been-There  { background-color: var(--status-amber) !important; }
+.status-Loved-It    { background-color: var(--status-green) !important; }
+.status-Meh         { background-color: #f97316 !important; }
+.status-Skip-It     { background-color: var(--status-red) !important; }
+.status-Unsorted    { background-color: var(--status-grey) !important; }
+
+/* Unpinned section */
+.unpinned-section {
+    margin: 0.75rem 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid #f59e0b;
+    overflow: hidden;
+}
+.unpinned-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.55rem 0.85rem;
+    background: #fffbeb;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #92400e;
+    user-select: none;
+}
+[data-theme="dark"] .unpinned-header {
+    background: #451a03;
+    color: #fcd34d;
+}
+.unpinned-count {
+    background: #f59e0b;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.unpinned-list {
+    list-style: none;
+    max-height: 180px;
+    overflow-y: auto;
+    background: var(--bg-panel);
+}
+.unpinned-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+    border-top: 1px solid var(--border);
+}
+.unpinned-item:hover { background: var(--item-hover); }
+.unpinned-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unpinned-edit-btn { background: none; border: none; cursor: pointer; font-size: 0.9rem; flex-shrink: 0; }
 
 .filters-container { display: flex; gap: 0.75rem; }
 .filter-group { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }

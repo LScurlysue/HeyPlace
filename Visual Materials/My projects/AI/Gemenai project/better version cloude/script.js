@@ -1,7 +1,7 @@
 // State
 let allPlaces = JSON.parse(localStorage.getItem('mapfolio_places')) || [];
 let triageData = JSON.parse(localStorage.getItem('mapfolio_triage')) || {};
-let customFolders = JSON.parse(localStorage.getItem('mapfolio_folders')) || ["Favorites", "Want to Visit"];
+let customFolders = JSON.parse(localStorage.getItem('mapfolio_folders')) || ["Want to Go", "Done"];
 let activePlace = null;
 let activeFolderFilter = null;
 let map = null;
@@ -12,19 +12,50 @@ let clusterGroup = null;
 const fileUpload = document.getElementById('file-upload');
 
 const categoryConfig = {
-    'Destination': { emoji: '🗺️', cssClass: 'cat-Destination' },
-    'Hotel': { emoji: '🏨', cssClass: 'cat-Hotel' },
-    'Restaurant': { emoji: '🍽️', cssClass: 'cat-Restaurant' },
-    'Attractions': { emoji: '🏛️', cssClass: 'cat-Attractions' },
-    'Experiences': { emoji: '🎯', cssClass: 'cat-Experiences' },
-    'Beach': { emoji: '🏖️', cssClass: 'cat-Beach' },
-    'Nature': { emoji: '🌿', cssClass: 'cat-Nature' },
-    'Family/Kids': { emoji: '🎠', cssClass: 'cat-Family-Kids' },
-    'Shopping': { emoji: '🛍️', cssClass: 'cat-Shopping' },
-    'Parking/Fuel': { emoji: '🅿️', cssClass: 'cat-Parking-Fuel' },
-    'Toilets': { emoji: '🚻', cssClass: 'cat-Toilets' },
-    'Other': { emoji: '📍', cssClass: 'cat-Other' }
+    'City / Region':       { emoji: '🗺️', cssClass: 'cat-City' },
+    'Hotel':               { emoji: '🏨', cssClass: 'cat-Hotel' },
+    'Restaurant':          { emoji: '🍽️', cssClass: 'cat-Restaurant' },
+    'Café / Bar':          { emoji: '☕', cssClass: 'cat-Cafe' },
+    'Museum / Gallery':    { emoji: '🏛️', cssClass: 'cat-Museum' },
+    'Monument / Landmark': { emoji: '🏰', cssClass: 'cat-Monument' },
+    'Activity':            { emoji: '🎯', cssClass: 'cat-Activity' },
+    'Beach':               { emoji: '🏖️', cssClass: 'cat-Beach' },
+    'Nature':              { emoji: '🌿', cssClass: 'cat-Nature' },
+    'Viewpoint':           { emoji: '👁️', cssClass: 'cat-Viewpoint' },
+    'Market':              { emoji: '🛒', cssClass: 'cat-Market' },
+    'Spa / Wellness':      { emoji: '💆', cssClass: 'cat-Spa' },
+    'Entertainment':       { emoji: '🎭', cssClass: 'cat-Entertainment' },
+    'Shopping':            { emoji: '🛍️', cssClass: 'cat-Shopping' },
+    'Parking / Fuel':      { emoji: '🅿️', cssClass: 'cat-Parking' },
+    'Toilets':             { emoji: '🚻', cssClass: 'cat-Toilets' },
+    'Other':               { emoji: '📍', cssClass: 'cat-Other' }
 };
+
+// Auto-category keyword detection
+function detectCategory(name, address) {
+    const text = (name + ' ' + (address || '')).toLowerCase();
+    const rules = [
+        { cat: 'Hotel',               words: ['hotel','inn','hostel','auberge','b&b','bed and breakfast','lodge','motel','guesthouse','pension','resort','riad'] },
+        { cat: 'Restaurant',          words: ['restaurant','brasserie','bistro','pizzeria','trattoria','sushi','steakhouse','tavern','eatery','diner','grill','cantina','bodega','kebab','burger','noodle','ramen','barbeque','bbq','creperie','crêperie','winery','brewery'] },
+        { cat: 'Café / Bar',          words: ['café','cafe','coffee','tea room','tearoom','patisserie','pâtisserie','bakery','boulangerie','bar','pub','tavern','cocktail','lounge','wine bar','brasserie café','kiosk'] },
+        { cat: 'Museum / Gallery',    words: ['museum','musée','gallery','galerie','exhibition','art center','moma','louvre','tate','guggenheim','kunsthalle'] },
+        { cat: 'Monument / Landmark', words: ['castle','château','palace','cathedral','church','basilica','abbey','chapel','mosque','temple','synagogue','monument','memorial','statue','tower','fort','ruins','archaeological','heritage'] },
+        { cat: 'Activity',            words: ['hiking','kayak','surf','dive','climb','zipline','tour','walk','cycle','bike','ski','snowboard','escape room','cooking class','workshop','boat','sailing'] },
+        { cat: 'Beach',               words: ['beach','plage','strand','cove','bay','costa','praia'] },
+        { cat: 'Nature',              words: ['park','garden','forest','lake','waterfall','canyon','valley','reserve','national park','botanical','jardin','nature'] },
+        { cat: 'Viewpoint',           words: ['viewpoint','belvedere','mirador','panorama','lookout','observation','terrace','rooftop view'] },
+        { cat: 'Market',              words: ['market','marché','mercado','bazaar','souk','flea market','farmers market','brocante'] },
+        { cat: 'Spa / Wellness',      words: ['spa','wellness','thermal','hammam','sauna','massage','yoga','retreat','fitness'] },
+        { cat: 'Entertainment',       words: ['cinema','theatre','theater','concert','stadium','arena','zoo','aquarium','theme park','amusement','circus','casino','bowling','escape'] },
+        { cat: 'Shopping',            words: ['shopping','mall','boutique','shop','store','outlet','market street','supermarket'] },
+        { cat: 'Parking / Fuel',      words: ['parking','garage','petrol','fuel','gas station','station service'] },
+        { cat: 'City / Region',       words: ['city','town','village','district','neighbourhood','quarter','arrondissement','region'] },
+    ];
+    for (const rule of rules) {
+        if (rule.words.some(w => text.includes(w))) return rule.cat;
+    }
+    return 'Other';
+}
 
 function saveState() {
     localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
@@ -177,7 +208,7 @@ Array.from(placemarks).forEach((pm, i) => {
         customFolders.push(contextName);
     }
     triageData[placeId] = {
-        category: 'Other',
+        category: detectCategory(name, address),
         status: 'Unsorted',
         folder: contextName
     };
@@ -299,7 +330,7 @@ function processCSV(text, filenameContext) {
             customFolders.push(filenameContext);
         }
         triageData[placeId] = {
-            category: 'Other',
+            category: detectCategory(name, address),
             status: 'Unsorted',
             folder: filenameContext
         };
@@ -474,9 +505,8 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
     localStorage.setItem('mapfolio_theme', nextTheme);
 });
 
-// REPLACE YOUR ENTIRE applyFiltersAndRender FUNCTION WITH THIS:
 function applyFiltersAndRender() {
-    renderFoldersList(); // <--- This must run first so your folders draw on screen!
+    renderFoldersList();
 
     const catFilter = document.getElementById('filter-category').value;
     const statFilter = document.getElementById('filter-status').value;
@@ -486,25 +516,51 @@ function applyFiltersAndRender() {
         const data = triageData[place.id] || { category: 'Other', status: 'Unsorted', folder: 'Uncategorized' };
         const matchCategory = catFilter === 'All' || data.category === catFilter;
         const matchStatus = statFilter === 'All' || data.status === statFilter;
-        const matchSearch = searchTerm === '' || place.name.toLowerCase().includes(searchTerm) || place.address.toLowerCase().includes(searchTerm);
+        const matchSearch = searchTerm === '' || place.name.toLowerCase().includes(searchTerm) || (place.address || '').toLowerCase().includes(searchTerm);
         const matchFolder = activeFolderFilter === null || (data.folder || 'Uncategorized') === activeFolderFilter;
         return matchCategory && matchStatus && matchSearch && matchFolder;
     });
 
-    renderSidebarList(filteredPlaces);
     renderMapPins(filteredPlaces);
-    document.getElementById('place-count').textContent = `(${filteredPlaces.length})`;
+    renderUnpinned();
 }
 
+function renderUnpinned() {
+    const unpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
+    const section = document.getElementById('unpinned-section');
+    const countEl = document.getElementById('unpinned-count');
+    const list = document.getElementById('unpinned-list');
+
+    if (unpinned.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+    countEl.textContent = unpinned.length;
+    list.innerHTML = '';
+
+    unpinned.forEach(place => {
+        const li = document.createElement('li');
+        li.className = 'unpinned-item';
+        li.innerHTML = `<span class="unpinned-name">${place.name}</span><button class="unpinned-edit-btn" title="Fix coordinates">✏️</button>`;
+        li.querySelector('.unpinned-edit-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openTriagePanel(place);
+        });
+        list.appendChild(li);
+    });
+}
+
+// kept for internal use only — not shown in sidebar anymore
 function renderSidebarList(places) {
     const container = document.getElementById('places-list');
+    if (!container) return;
     container.innerHTML = '';
-    
     if (places.length === 0) {
         container.innerHTML = '<div class="empty-state">No places match the criteria.</div>';
         return;
     }
-
     places.forEach(place => {
         const data = triageData[place.id] || { category: 'Other', status: 'Unsorted' };
         const li = document.createElement('li');
@@ -648,6 +704,11 @@ function showImportToast(message) {
     toast.classList.add('visible');
     setTimeout(() => toast.classList.remove('visible'), 3000);
 }
+
+document.getElementById('unpinned-header').addEventListener('click', () => {
+    const list = document.getElementById('unpinned-list');
+    list.classList.toggle('hidden');
+});
 
 document.getElementById('filter-category').addEventListener('change', applyFiltersAndRender);
 document.getElementById('filter-status').addEventListener('change', applyFiltersAndRender);
