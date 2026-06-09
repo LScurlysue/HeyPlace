@@ -739,6 +739,15 @@ function openTriagePanel(place) {
     document.getElementById('triage-panel').classList.remove('hidden');
     document.getElementById('delete-confirm').classList.add('hidden');
     document.getElementById('delete-place-btn').classList.remove('hidden');
+
+    // Cancel any stale geocode from a previous panel, then auto-try if unpinned
+    cancelGeocode();
+    const hasAddress = place.address && place.address.trim().length > 2;
+    const missingCoords = !place.lat && !place.lng || (place.lat === 0 && place.lng === 0);
+    if (hasAddress && missingCoords) {
+        setGeocodeStatus('loading', '🔍 Looking up coordinates…');
+        geocodeDebounceTimer = setTimeout(() => runGeocode(place.address.trim()), 600);
+    }
 }
 
 function closeTriage() {
@@ -746,6 +755,119 @@ function closeTriage() {
     activePlace = null;
     applyFiltersAndRender();
 }
+
+// ── Auto-geocode address → lat/lng ────────────────────────────────────────
+let geocodeDebounceTimer = null;
+let geocodeAbortController = null;
+
+function setGeocodeStatus(type, msg) {
+    const el = document.getElementById('geocode-status');
+    if (!el) return;
+    if (!msg) { el.classList.add('hidden'); return; }
+    el.className = `geocode-status ${type}`;
+    el.classList.remove('hidden');
+    el.textContent = msg;
+}
+
+function cancelGeocode() {
+    clearTimeout(geocodeDebounceTimer);
+    if (geocodeAbortController) { geocodeAbortController.abort(); geocodeAbortController = null; }
+    setGeocodeStatus(null);
+}
+
+async function runGeocode(address) {
+    const latEl = document.getElementById('triage-lat');
+    const lngEl = document.getElementById('triage-lng');
+    const latVal = latEl.value.trim();
+    const lngVal = lngEl.value.trim();
+
+    if (!address) { setGeocodeStatus(null); return; }
+
+    // Don't overwrite coords the user typed manually
+    const coordsEmpty = !latVal && !lngVal;
+    const coordsMatchPlace = activePlace &&
+        latVal === String(activePlace.lat) && lngVal === String(activePlace.lng);
+    if (!coordsEmpty && !coordsMatchPlace) { setGeocodeStatus(null); return; }
+
+    setGeocodeStatus('loading', '🔍 Looking up coordinates…');
+
+    // Cancel any previous in-flight request
+    if (geocodeAbortController) geocodeAbortController.abort();
+    geocodeAbortController = new AbortController();
+    const signal = geocodeAbortController.signal;
+
+    // Build a list of queries to try in order:
+    // 1. The address as-is
+    // 2. The place name (from the title field) — great for landmarks
+    // 3. Address with accents/special chars stripped
+    const placeName = document.getElementById('triage-title')?.value?.trim() || '';
+    const stripped = address.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const queries = [...new Set([address, placeName, stripped].filter(Boolean))];
+
+    // Try Nominatim (address/name)
+    async function tryNominatim(q) {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' }, signal });
+        const data = await res.json();
+        if (data && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        return null;
+    }
+
+    // Try Photon (Komoot) — better POI coverage, no API key
+    async function tryPhoton(q) {
+        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`;
+        const res = await fetch(url, { signal });
+        const data = await res.json();
+        if (data && data.features && data.features.length > 0) {
+            const [lon, lat] = data.features[0].geometry.coordinates;
+            return { lat, lon };
+        }
+        return null;
+    }
+
+    try {
+        let found = null;
+
+        // Round 1: try each query with Nominatim
+        for (const q of queries) {
+            found = await tryNominatim(q);
+            if (found) break;
+            await new Promise(x => setTimeout(x, 200));
+        }
+
+        // Round 2: if still nothing, try Photon with the same queries
+        if (!found) {
+            for (const q of queries) {
+                found = await tryPhoton(q);
+                if (found) break;
+                await new Promise(x => setTimeout(x, 200));
+            }
+        }
+
+        if (found) {
+            const lat = parseFloat(found.lat);
+            const lng = parseFloat(found.lon);
+            latEl.value = lat;
+            lngEl.value = lng;
+            setGeocodeStatus('success', `✅ Found: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        } else {
+            setGeocodeStatus('error', '⚠️ Couldn\'t auto-locate — enter coordinates manually');
+        }
+    } catch (e) {
+        if (e.name !== 'AbortError') {
+            setGeocodeStatus('error', '⚠️ Lookup failed — enter coordinates manually');
+        }
+    }
+}
+
+// Trigger on user typing in the address field
+document.getElementById('triage-address').addEventListener('input', () => {
+    const address = document.getElementById('triage-address').value.trim();
+    clearTimeout(geocodeDebounceTimer);
+    if (!address) { setGeocodeStatus(null); return; }
+    setGeocodeStatus('loading', '🔍 Looking up coordinates…');
+    geocodeDebounceTimer = setTimeout(() => runGeocode(address), 700);
+});
 
 function updateTriageData() {
     if (!activePlace) return;
@@ -1011,3 +1133,89 @@ if (folderSearchInputInstance) {
 }
 
 document.addEventListener('DOMContentLoaded', initMap);
+
+// ─── Mobile Bottom Sheet ──────────────────────────────────────────────────────
+
+const sheet = document.getElementById('mobile-sheet');
+const handle = document.getElementById('sheet-handle');
+
+const STATES = ['collapsed', 'half', 'full'];
+
+function isMobile() { return window.innerWidth < 768; }
+
+function setSheetState(state) {
+    if (!sheet) return;
+    sheet.dataset.state = state;
+    // sync nav active button
+    const navMap = document.getElementById('nav-map');
+    const navPlaces = document.getElementById('nav-places');
+    if (navMap && navPlaces) {
+        navMap.classList.toggle('active', state === 'collapsed');
+        navPlaces.classList.toggle('active', state !== 'collapsed');
+    }
+}
+
+// Tap the handle to cycle states: collapsed → half → full → collapsed
+handle && handle.addEventListener('click', () => {
+    if (!isMobile()) return;
+    const current = sheet.dataset.state || 'collapsed';
+    const next = STATES[(STATES.indexOf(current) + 1) % STATES.length];
+    setSheetState(next);
+});
+
+// Drag the handle to set state based on finger position
+let dragStartY = 0;
+let dragStartState = 'collapsed';
+
+function onDragStart(e) {
+    if (!isMobile()) return;
+    dragStartY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    dragStartState = sheet.dataset.state || 'collapsed';
+    sheet.style.transition = 'none';
+}
+
+function onDragEnd(e) {
+    if (!isMobile()) return;
+    sheet.style.transition = '';
+    const endY = e.type === 'touchend' ? e.changedTouches[0].clientY : e.clientY;
+    const delta = dragStartY - endY; // positive = dragged up
+
+    if (Math.abs(delta) < 20) return; // too small, ignore
+
+    if (delta > 0) {
+        // dragged up → open more
+        const next = dragStartState === 'collapsed' ? 'half' : 'full';
+        setSheetState(next);
+    } else {
+        // dragged down → close more
+        const next = dragStartState === 'full' ? 'half' : 'collapsed';
+        setSheetState(next);
+    }
+}
+
+if (handle) {
+    handle.addEventListener('touchstart', onDragStart, { passive: true });
+    handle.addEventListener('touchend', onDragEnd, { passive: true });
+    handle.addEventListener('mousedown', onDragStart);
+    document.addEventListener('mouseup', onDragEnd);
+}
+
+// Nav helpers
+function mobileNavMap() {
+    setSheetState('collapsed');
+}
+
+function mobileNavPlaces() {
+    const current = sheet.dataset.state || 'collapsed';
+    setSheetState(current === 'collapsed' ? 'half' : current);
+}
+
+// When a place is opened on mobile, collapse the sheet so the map is visible
+const _origOpenTriage = typeof openTriagePanel !== 'undefined' ? openTriagePanel : null;
+if (typeof openTriagePanel === 'function') {
+    const __open = openTriagePanel;
+    window.openTriagePanel = function(place) {
+        __open(place);
+        if (isMobile()) setSheetState('collapsed');
+    };
+}

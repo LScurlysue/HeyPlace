@@ -15,7 +15,11 @@
 </head>
 <body>
     <main class="app-container">
-        <aside class="sidebar">
+        <aside class="sidebar" id="mobile-sheet" data-state="collapsed">
+            <div class="sheet-handle" id="sheet-handle">
+                <div class="sheet-handle-bar"></div>
+            </div>
+            <div class="sidebar-scroll-body">
             <header class="sidebar-header">
                 <div class="header-top">
                     <h1>📍 MapFolio</h1>
@@ -88,6 +92,7 @@
                 <ul id="unpinned-list" class="unpinned-list hidden"></ul>
             </div>
 
+            </div><!-- /.sidebar-scroll-body -->
             <div class="sidebar-footer">
                 <span id="places-footer">📍 0 places</span>
             </div>
@@ -116,6 +121,7 @@
                             <input type="text" id="triage-lng" placeholder="e.g. -8.6732" class="search-input" style="padding: 0.4rem;" />
                         </div>
                     </div>
+                    <div id="geocode-status" class="geocode-status hidden"></div>
 
                     <div class="form-group">
                         <label style="display:flex; justify-content:space-between; align-items:center;">
@@ -163,6 +169,21 @@
             </div>
         </section>
     </main>
+
+    <nav class="mobile-nav" id="mobile-nav">
+        <button class="mobile-nav-btn active" id="nav-map" onclick="mobileNavMap()">
+            <span class="nav-icon">🗺️</span>
+            <span>Map</span>
+        </button>
+        <button class="mobile-nav-btn" id="nav-places" onclick="mobileNavPlaces()">
+            <span class="nav-icon">📋</span>
+            <span>Places</span>
+        </button>
+        <button class="mobile-nav-btn" id="nav-import" onclick="document.getElementById('file-upload').click()">
+            <span class="nav-icon">⬆️</span>
+            <span>Import</span>
+        </button>
+    </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>

@@ -463,6 +463,37 @@ body {
 }
 [data-theme="dark"] .delete-place-btn { color: #fca5a5; }
 
+/* Geocode status indicator */
+.geocode-status {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: var(--radius-md);
+    margin-top: -0.25rem;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 500;
+}
+.geocode-status.loading {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+.geocode-status.success {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+.geocode-status.error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+[data-theme="dark"] .geocode-status.loading { background: #1e3a5f; color: #93c5fd; border-color: #1d4ed8; }
+[data-theme="dark"] .geocode-status.success { background: #14532d; color: #86efac; border-color: #166534; }
+[data-theme="dark"] .geocode-status.error   { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
+
 .close-btn {
     position: absolute;
     top: 1rem;
@@ -495,4 +526,230 @@ body {
     .sidebar { width: 380px; height: 100vh; border-top: none; border-right: 1px solid var(--border); }
     .map-container { height: 100vh; }
     .triage-panel { bottom: 2rem; left: 2rem; transform: none; }
+    .sheet-handle { display: none; }
+    .mobile-nav { display: none; }
+}
+
+/* ─── Mobile Bottom Sheet ─────────────────────────────────────────────── */
+@media (max-width: 767px) {
+
+    .app-container {
+        display: block;
+        position: relative;
+    }
+
+    .map-container {
+        position: fixed;
+        inset: 0;
+        height: 100dvh !important;
+        z-index: 0;
+    }
+
+    /* ── Bottom sheet ── */
+    .sidebar {
+        position: fixed;
+        bottom: 60px;
+        left: 0;
+        right: 0;
+        height: 78px;
+        max-height: calc(100dvh - 60px);
+        border-radius: 24px 24px 0 0;
+        border-top: none;
+        border-right: none;
+        overflow: hidden;
+        transition: height 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+        z-index: 500;
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.18), 0 -1px 0 rgba(0,0,0,0.06);
+        display: flex;
+        flex-direction: column;
+        background: var(--bg-panel);
+    }
+
+    [data-theme="dark"] .sidebar {
+        box-shadow: 0 -8px 32px rgba(0,0,0,0.45), 0 -1px 0 rgba(255,255,255,0.06);
+    }
+
+    .sidebar[data-state="half"] { height: 56vh; }
+    .sidebar[data-state="full"] { height: calc(100dvh - 60px); }
+
+    /* Scrollable inner area */
+    .sidebar > *:not(.sheet-handle) { flex-shrink: 0; }
+    .sidebar[data-state="half"] .sidebar-scroll-body,
+    .sidebar[data-state="full"] .sidebar-scroll-body {
+        overflow-y: auto;
+        flex: 1;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Handle ── */
+    .sheet-handle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 12px 0 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+        touch-action: none;
+        user-select: none;
+    }
+
+    .sheet-handle-bar {
+        width: 36px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 99px;
+        transition: width 0.2s, background 0.2s;
+    }
+    .sheet-handle:active .sheet-handle-bar {
+        width: 48px;
+        background: var(--text-muted);
+    }
+
+    /* Header: hidden when collapsed */
+    .sidebar[data-state="collapsed"] .sidebar-header { display: none; }
+
+    /* Section padding tighter on mobile */
+    .sidebar-header,
+    .search-section,
+    .upload-section {
+        padding: 0.85rem 1.1rem;
+    }
+
+    .section-block { padding: 0.85rem 1.1rem; }
+
+    /* ── Pill search bar ── */
+    .search-section .search-input {
+        border-radius: 99px;
+        padding: 0.6rem 1rem 0.6rem 2.4rem;
+        background: var(--bg-main);
+        font-size: 0.9rem;
+        border: 1.5px solid var(--border);
+    }
+    .search-section .search-icon {
+        position: absolute;
+        left: 0.85rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.95rem;
+        pointer-events: none;
+    }
+
+    /* Collapsed peek: show just pill search */
+    .sidebar[data-state="collapsed"] .search-section {
+        padding: 0 1rem 0.75rem;
+    }
+
+    /* ── Folder items: bigger touch targets ── */
+    .folder-item {
+        padding: 0.75rem 0.9rem;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        gap: 0.5rem;
+        min-height: 48px;
+    }
+
+    .folders-list {
+        gap: 0.5rem;
+        max-height: none;
+    }
+
+    .folder-actions button {
+        font-size: 1.1rem;
+        padding: 0.2rem 0.3rem;
+        min-width: 36px;
+        min-height: 36px;
+    }
+
+    /* ── Bottom nav bar ── */
+    .mobile-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--bg-panel);
+        border-top: 1px solid var(--border);
+        display: flex;
+        z-index: 600;
+        box-shadow: 0 -1px 12px rgba(0,0,0,0.08);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    [data-theme="dark"] .mobile-nav {
+        box-shadow: 0 -1px 12px rgba(0,0,0,0.3);
+    }
+
+    .mobile-nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: var(--text-muted);
+        font-family: 'Inter', sans-serif;
+        transition: color 0.18s, transform 0.15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-nav-btn .nav-icon {
+        font-size: 1.4rem;
+        line-height: 1;
+        transition: transform 0.18s;
+    }
+
+    .mobile-nav-btn.active {
+        color: var(--primary);
+    }
+
+    .mobile-nav-btn.active .nav-icon {
+        transform: scale(1.15);
+    }
+
+    .mobile-nav-btn:active { transform: scale(0.93); }
+
+    /* Active indicator dot */
+    .mobile-nav-btn.active::after {
+        content: '';
+        display: block;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: var(--primary);
+        position: absolute;
+        bottom: 6px;
+    }
+
+    /* ── Triage panel ── */
+    .triage-panel {
+        bottom: calc(60px + 0.75rem);
+        left: 0.75rem;
+        right: 0.75rem;
+        width: auto;
+        max-width: none;
+        transform: none;
+        max-height: 80dvh;
+        overflow-y: auto;
+        padding: 1rem;
+        border-radius: var(--radius-lg);
+    }
+
+    /* ── Misc ── */
+    .sidebar-footer {
+        flex-shrink: 0;
+        margin-top: auto;
+        font-size: 0.8rem;
+        padding: 0.6rem 1.1rem;
+    }
+
+    .import-toast { bottom: calc(60px + 1rem); }
+
+    /* Filter selects full-width stacked on very small screens */
+    .filters-container { flex-direction: column; gap: 0.5rem; }
 }
