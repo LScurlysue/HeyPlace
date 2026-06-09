@@ -73,6 +73,101 @@ function saveState() {
     localStorage.setItem('mapfolio_custom_categories', JSON.stringify(customCategories));
 }
 
+// ── Empty state & Demo data ───────────────────────────────────────────────
+
+const DEMO_PLACES = [
+    { id:'demo-1',  name:'Eiffel Tower',          address:'Champ de Mars, Paris, France',              url:'https://maps.google.com/?q=Eiffel+Tower',       lat:48.85837, lng:2.29448  },
+    { id:'demo-2',  name:'Sagrada Família',        address:'Carrer de Mallorca, Barcelona, Spain',       url:'https://maps.google.com/?q=Sagrada+Familia',    lat:41.40363, lng:2.17435  },
+    { id:'demo-3',  name:'Colosseum',              address:'Piazza del Colosseo, Rome, Italy',           url:'https://maps.google.com/?q=Colosseum+Rome',     lat:41.89021, lng:12.49223 },
+    { id:'demo-4',  name:'Acropolis of Athens',    address:'Athens, Greece',                             url:'https://maps.google.com/?q=Acropolis+Athens',   lat:37.97154, lng:23.72647 },
+    { id:'demo-5',  name:'Louvre Museum',          address:'Rue de Rivoli, Paris, France',               url:'https://maps.google.com/?q=Louvre+Museum',      lat:48.86063, lng:2.33751  },
+    { id:'demo-6',  name:'Park Güell',             address:'Carrer d\'Olot, Barcelona, Spain',           url:'https://maps.google.com/?q=Park+Guell',         lat:41.41451, lng:2.15243  },
+    { id:'demo-7',  name:'Trevi Fountain',         address:'Piazza di Trevi, Rome, Italy',               url:'https://maps.google.com/?q=Trevi+Fountain',     lat:41.90086, lng:12.48326 },
+    { id:'demo-8',  name:'Rijksmuseum',            address:'Museumstraat 1, Amsterdam, Netherlands',     url:'https://maps.google.com/?q=Rijksmuseum',        lat:52.36004, lng:4.88530  },
+    { id:'demo-9',  name:'Alhambra',               address:'Calle Real de la Alhambra, Granada, Spain',  url:'https://maps.google.com/?q=Alhambra+Granada',   lat:37.17605, lng:-3.58826 },
+    { id:'demo-10', name:'Santorini Caldera',      address:'Oia, Santorini, Greece',                     url:'https://maps.google.com/?q=Santorini+Caldera',  lat:36.46199, lng:25.37662 },
+    { id:'demo-11', name:'Café A Brasileira',      address:'Rua Garrett 120, Lisbon, Portugal',          url:'https://maps.google.com/?q=Cafe+A+Brasileira',  lat:38.71141, lng:-9.14246 },
+    { id:'demo-12', name:'Vondelpark',             address:'Vondelpark, Amsterdam, Netherlands',         url:'https://maps.google.com/?q=Vondelpark',         lat:52.35820, lng:4.86817  },
+];
+
+const DEMO_TRIAGE = {
+    'demo-1':  { category:'Monument / Landmark', status:'Loved It',    folder:'Europe Favourites' },
+    'demo-2':  { category:'Monument / Landmark', status:'Want to Go',  folder:'Spain Trip'        },
+    'demo-3':  { category:'Monument / Landmark', status:'Been There',  folder:'Italy'             },
+    'demo-4':  { category:'Monument / Landmark', status:'Want to Go',  folder:'Greece Dreams'     },
+    'demo-5':  { category:'Museum / Gallery',    status:'Loved It',    folder:'Europe Favourites' },
+    'demo-6':  { category:'Activity',            status:'Want to Go',  folder:'Spain Trip'        },
+    'demo-7':  { category:'Monument / Landmark', status:'Loved It',    folder:'Italy'             },
+    'demo-8':  { category:'Museum / Gallery',    status:'Want to Go',  folder:'Europe Favourites' },
+    'demo-9':  { category:'Monument / Landmark', status:'Been There',  folder:'Spain Trip'        },
+    'demo-10': { category:'Viewpoint',           status:'Favourite',   folder:'Greece Dreams'     },
+    'demo-11': { category:'Café / Bar',          status:'Loved It',    folder:'Portugal'          },
+    'demo-12': { category:'Nature',              status:'Been There',  folder:'Europe Favourites' },
+};
+
+const DEMO_FOLDERS = ['Europe Favourites', 'Spain Trip', 'Italy', 'Greece Dreams', 'Portugal'];
+const DEMO_IDS = new Set(DEMO_PLACES.map(p => p.id));
+
+function isDemoActive() {
+    return localStorage.getItem('mapfolio_demo') === 'true';
+}
+
+function updateEmptyState() {
+    const empty = document.getElementById('empty-state');
+    const clearBtn = document.getElementById('clear-demo-btn');
+    if (!empty) return;
+
+    if (allPlaces.length === 0) {
+        empty.classList.remove('hidden');
+    } else {
+        empty.classList.add('hidden');
+    }
+
+    if (clearBtn) {
+        clearBtn.classList.toggle('hidden', !isDemoActive());
+    }
+}
+
+function loadDemo() {
+    // Add demo places & triage (don't overwrite user's real ones)
+    DEMO_PLACES.forEach(p => {
+        if (!allPlaces.find(x => x.id === p.id)) allPlaces.push(p);
+    });
+    Object.assign(triageData, DEMO_TRIAGE);
+
+    // Add demo folders
+    DEMO_FOLDERS.forEach(f => {
+        if (!customFolders.includes(f)) customFolders.push(f);
+    });
+
+    localStorage.setItem('mapfolio_demo', 'true');
+    saveState();
+    populateDropdowns();
+    applyFiltersAndRender();
+    updateEmptyState();
+    showImportToast('✨ Demo places loaded! Explore the map.');
+
+    // Fly to Europe
+    if (map) map.flyTo([48.0, 10.0], 4, { duration: 1.5 });
+}
+
+function clearDemo() {
+    allPlaces = allPlaces.filter(p => !DEMO_IDS.has(p.id));
+    DEMO_IDS.forEach(id => delete triageData[id]);
+    DEMO_FOLDERS.forEach(f => {
+        customFolders = customFolders.filter(x => x !== f);
+    });
+    localStorage.removeItem('mapfolio_demo');
+    saveState();
+    populateDropdowns();
+    applyFiltersAndRender();
+    updateEmptyState();
+    showImportToast('Demo places cleared.');
+}
+
+document.getElementById('load-demo-btn')?.addEventListener('click', loadDemo);
+document.getElementById('clear-demo-btn')?.addEventListener('click', clearDemo);
+
 function populateDropdowns() {
     const selects = [
         document.getElementById('filter-category'),
@@ -135,6 +230,8 @@ function initMap() {
     if (allPlaces.length > 0) {
         applyFiltersAndRender();
         fitMapToBounds();
+    } else {
+        updateEmptyState();
     }
 }
 
@@ -610,6 +707,7 @@ function applyFiltersAndRender() {
 
     renderMapPins(filteredPlaces);
     renderUnpinned();
+    updateEmptyState();
 
     // Update footer count
     const footer = document.getElementById('places-footer');

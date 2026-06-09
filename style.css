@@ -463,6 +463,56 @@ body {
 }
 [data-theme="dark"] .delete-place-btn { color: #fca5a5; }
 
+/* Empty state */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 1.25rem;
+    gap: 0.6rem;
+    border-bottom: 1px solid var(--border);
+}
+.empty-state-icon { font-size: 2.5rem; line-height: 1; }
+.empty-state h3 { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+.empty-state p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+.demo-btn {
+    margin-top: 0.25rem;
+    padding: 0.6rem 1.2rem;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    color: #fff;
+    border: none;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 3px 10px rgba(37,99,235,0.3);
+    transition: opacity 0.2s, transform 0.15s;
+}
+.demo-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+.demo-btn:active { transform: translateY(0); }
+
+.sidebar-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.clear-demo-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 99px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: color 0.2s, border-color 0.2s;
+}
+.clear-demo-btn:hover { color: #dc2626; border-color: #dc2626; }
+
 /* Geocode status indicator */
 .geocode-status {
     font-size: 0.78rem;

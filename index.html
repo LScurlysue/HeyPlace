@@ -93,8 +93,17 @@
             </div>
 
             </div><!-- /.sidebar-scroll-body -->
+            <!-- Empty state shown when no places loaded -->
+            <div id="empty-state" class="empty-state hidden">
+                <div class="empty-state-icon">🗺️</div>
+                <h3>Your map is empty</h3>
+                <p>Import your Google Maps saved places, or try the demo to see how MapFolio works.</p>
+                <button id="load-demo-btn" class="demo-btn">✨ Load demo places</button>
+            </div>
+
             <div class="sidebar-footer">
                 <span id="places-footer">📍 0 places</span>
+                <button id="clear-demo-btn" class="clear-demo-btn hidden" title="Remove demo places">✕ Clear demo</button>
             </div>
         </aside>
 
