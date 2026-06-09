@@ -545,6 +545,10 @@ body {
         z-index: 0;
     }
 
+    /* Push Leaflet controls below the sheet */
+    .leaflet-top, .leaflet-bottom { z-index: 400 !important; }
+    .leaflet-control { z-index: 400 !important; }
+
     /* ── Bottom sheet ── */
     .sidebar {
         position: fixed;
