@@ -73,6 +73,101 @@ function saveState() {
     localStorage.setItem('mapfolio_custom_categories', JSON.stringify(customCategories));
 }
 
+// ── Empty state & Demo data ───────────────────────────────────────────────
+
+const DEMO_PLACES = [
+    { id:'demo-1',  name:'Eiffel Tower',          address:'Champ de Mars, Paris, France',              url:'https://maps.google.com/?q=Eiffel+Tower',       lat:48.85837, lng:2.29448  },
+    { id:'demo-2',  name:'Sagrada Família',        address:'Carrer de Mallorca, Barcelona, Spain',       url:'https://maps.google.com/?q=Sagrada+Familia',    lat:41.40363, lng:2.17435  },
+    { id:'demo-3',  name:'Colosseum',              address:'Piazza del Colosseo, Rome, Italy',           url:'https://maps.google.com/?q=Colosseum+Rome',     lat:41.89021, lng:12.49223 },
+    { id:'demo-4',  name:'Acropolis of Athens',    address:'Athens, Greece',                             url:'https://maps.google.com/?q=Acropolis+Athens',   lat:37.97154, lng:23.72647 },
+    { id:'demo-5',  name:'Louvre Museum',          address:'Rue de Rivoli, Paris, France',               url:'https://maps.google.com/?q=Louvre+Museum',      lat:48.86063, lng:2.33751  },
+    { id:'demo-6',  name:'Park Güell',             address:'Carrer d\'Olot, Barcelona, Spain',           url:'https://maps.google.com/?q=Park+Guell',         lat:41.41451, lng:2.15243  },
+    { id:'demo-7',  name:'Trevi Fountain',         address:'Piazza di Trevi, Rome, Italy',               url:'https://maps.google.com/?q=Trevi+Fountain',     lat:41.90086, lng:12.48326 },
+    { id:'demo-8',  name:'Rijksmuseum',            address:'Museumstraat 1, Amsterdam, Netherlands',     url:'https://maps.google.com/?q=Rijksmuseum',        lat:52.36004, lng:4.88530  },
+    { id:'demo-9',  name:'Alhambra',               address:'Calle Real de la Alhambra, Granada, Spain',  url:'https://maps.google.com/?q=Alhambra+Granada',   lat:37.17605, lng:-3.58826 },
+    { id:'demo-10', name:'Santorini Caldera',      address:'Oia, Santorini, Greece',                     url:'https://maps.google.com/?q=Santorini+Caldera',  lat:36.46199, lng:25.37662 },
+    { id:'demo-11', name:'Café A Brasileira',      address:'Rua Garrett 120, Lisbon, Portugal',          url:'https://maps.google.com/?q=Cafe+A+Brasileira',  lat:38.71141, lng:-9.14246 },
+    { id:'demo-12', name:'Vondelpark',             address:'Vondelpark, Amsterdam, Netherlands',         url:'https://maps.google.com/?q=Vondelpark',         lat:52.35820, lng:4.86817  },
+];
+
+const DEMO_TRIAGE = {
+    'demo-1':  { category:'Monument / Landmark', status:'Loved It',    folder:'Europe Favourites' },
+    'demo-2':  { category:'Monument / Landmark', status:'Want to Go',  folder:'Spain Trip'        },
+    'demo-3':  { category:'Monument / Landmark', status:'Been There',  folder:'Italy'             },
+    'demo-4':  { category:'Monument / Landmark', status:'Want to Go',  folder:'Greece Dreams'     },
+    'demo-5':  { category:'Museum / Gallery',    status:'Loved It',    folder:'Europe Favourites' },
+    'demo-6':  { category:'Activity',            status:'Want to Go',  folder:'Spain Trip'        },
+    'demo-7':  { category:'Monument / Landmark', status:'Loved It',    folder:'Italy'             },
+    'demo-8':  { category:'Museum / Gallery',    status:'Want to Go',  folder:'Europe Favourites' },
+    'demo-9':  { category:'Monument / Landmark', status:'Been There',  folder:'Spain Trip'        },
+    'demo-10': { category:'Viewpoint',           status:'Favourite',   folder:'Greece Dreams'     },
+    'demo-11': { category:'Café / Bar',          status:'Loved It',    folder:'Portugal'          },
+    'demo-12': { category:'Nature',              status:'Been There',  folder:'Europe Favourites' },
+};
+
+const DEMO_FOLDERS = ['Europe Favourites', 'Spain Trip', 'Italy', 'Greece Dreams', 'Portugal'];
+const DEMO_IDS = new Set(DEMO_PLACES.map(p => p.id));
+
+function isDemoActive() {
+    return localStorage.getItem('mapfolio_demo') === 'true';
+}
+
+function updateEmptyState() {
+    const empty = document.getElementById('empty-state');
+    const clearBtn = document.getElementById('clear-demo-btn');
+    if (!empty) return;
+
+    if (allPlaces.length === 0) {
+        empty.classList.remove('hidden');
+    } else {
+        empty.classList.add('hidden');
+    }
+
+    if (clearBtn) {
+        clearBtn.classList.toggle('hidden', !isDemoActive());
+    }
+}
+
+function loadDemo() {
+    // Add demo places & triage (don't overwrite user's real ones)
+    DEMO_PLACES.forEach(p => {
+        if (!allPlaces.find(x => x.id === p.id)) allPlaces.push(p);
+    });
+    Object.assign(triageData, DEMO_TRIAGE);
+
+    // Add demo folders
+    DEMO_FOLDERS.forEach(f => {
+        if (!customFolders.includes(f)) customFolders.push(f);
+    });
+
+    localStorage.setItem('mapfolio_demo', 'true');
+    saveState();
+    populateDropdowns();
+    applyFiltersAndRender();
+    updateEmptyState();
+    showImportToast('✨ Demo places loaded! Explore the map.');
+
+    // Fly to Europe
+    if (map) map.flyTo([48.0, 10.0], 4, { duration: 1.5 });
+}
+
+function clearDemo() {
+    allPlaces = allPlaces.filter(p => !DEMO_IDS.has(p.id));
+    DEMO_IDS.forEach(id => delete triageData[id]);
+    DEMO_FOLDERS.forEach(f => {
+        customFolders = customFolders.filter(x => x !== f);
+    });
+    localStorage.removeItem('mapfolio_demo');
+    saveState();
+    populateDropdowns();
+    applyFiltersAndRender();
+    updateEmptyState();
+    showImportToast('Demo places cleared.');
+}
+
+document.getElementById('load-demo-btn')?.addEventListener('click', loadDemo);
+document.getElementById('clear-demo-btn')?.addEventListener('click', clearDemo);
+
 function populateDropdowns() {
     const selects = [
         document.getElementById('filter-category'),
@@ -135,7 +230,12 @@ function initMap() {
     if (allPlaces.length > 0) {
         applyFiltersAndRender();
         fitMapToBounds();
+    } else {
+        updateEmptyState();
     }
+
+    // Recalculate map size after CSS layout settles (fixes topbar offset)
+    setTimeout(() => map && map.invalidateSize(), 100);
 }
 
 // REPLACE YOUR ENTIRE fileUpload LISTENER WITH THIS
@@ -568,6 +668,7 @@ function renderFoldersList() {
 
 li.addEventListener('click', () => {
     activeFolderFilter = (activeFolderFilter === folder) ? null : folder;
+    updateActiveFolderLabel();
     renderFoldersList();
     applyFiltersAndRender();
 });
@@ -575,14 +676,43 @@ li.addEventListener('click', () => {
     });
 }
 
-document.getElementById('add-folder-btn').addEventListener('click', () => {
-    const folderName = prompt("Enter name for new folder:");
-    if (folderName && folderName.trim()) {
-        customFolders.push(folderName.trim());
-        saveState();
-        renderFoldersList();
-        populateDropdowns();
+document.getElementById('add-folder-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    // Show inline input instead of prompt()
+    const body = document.getElementById('folders-body');
+    if (document.getElementById('new-folder-inline')) return; // already open
+    const row = document.createElement('div');
+    row.id = 'new-folder-inline';
+    row.style.cssText = 'display:flex;gap:0.4rem;margin:0.4rem 0;';
+    row.innerHTML = `
+        <input id="new-folder-input" type="text" placeholder="Folder name…"
+            style="flex:1;padding:0.45rem 0.6rem;border:1.5px solid var(--primary);border-radius:8px;background:var(--bg-main);color:var(--text-main);font-size:0.85rem;font-family:Inter,sans-serif;outline:none;"
+            autocomplete="off" />
+        <button id="new-folder-save" style="padding:0.45rem 0.75rem;background:var(--primary);color:#1c1917;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.85rem;">✓</button>
+        <button id="new-folder-cancel" style="padding:0.45rem 0.6rem;background:transparent;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.85rem;color:var(--text-muted);">✕</button>
+    `;
+    body.insertBefore(row, body.firstChild);
+    const input = document.getElementById('new-folder-input');
+    input.focus();
+
+    function saveNewFolder() {
+        const name = input.value.trim();
+        row.remove();
+        if (name) {
+            customFolders.push(name);
+            saveState();
+            renderFoldersList();
+            populateDropdowns();
+        }
     }
+    function cancelNewFolder() { row.remove(); }
+
+    document.getElementById('new-folder-save').addEventListener('click', (e) => { e.stopPropagation(); saveNewFolder(); });
+    document.getElementById('new-folder-cancel').addEventListener('click', (e) => { e.stopPropagation(); cancelNewFolder(); });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveNewFolder();
+        if (e.key === 'Escape') cancelNewFolder();
+    });
 });
 
 document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -610,6 +740,7 @@ function applyFiltersAndRender() {
 
     renderMapPins(filteredPlaces);
     renderUnpinned();
+    updateEmptyState();
 
     // Update footer count
     const footer = document.getElementById('places-footer');
@@ -897,11 +1028,12 @@ document.getElementById('save-coords-btn').addEventListener('click', () => {
     updateTriageData();
     saveState();
     applyFiltersAndRender();
-    
+
     if (inputtedLat !== 0 && inputtedLng !== 0) {
         map.flyTo([inputtedLat, inputtedLng], 14, { duration: 1.2 });
     }
-    showImportToast("Layout modifications saved successfully!");
+    closeTriage();
+    showImportToast("Changes saved!");
 });
 
 function fitMapToBounds() {
@@ -1018,6 +1150,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
             item.addEventListener('click', () => {
                 closeSearchDropdown();
                 searchInput.value = '';
+                closeDrawer();
                 applyFiltersAndRender();
                 if (place.lat !== 0 && place.lng !== 0) {
                     map.flyTo([place.lat, place.lng], 15, { duration: 1.2 });
@@ -1042,6 +1175,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
             item.addEventListener('click', () => {
                 closeSearchDropdown();
                 searchInput.value = '';
+                closeDrawer();
                 applyFiltersAndRender();
                 const lat = parseFloat(result.lat);
                 const lng = parseFloat(result.lon);
@@ -1050,7 +1184,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
                 const newId = `manual-${Date.now()}`;
                 const newPlace = { id: newId, name, address: addr, url: '#', lat, lng };
                 allPlaces.push(newPlace);
-                triageData[newId] = { category: 'Other', status: 'Unsorted', folder: 'Uncategorized' };
+                triageData[newId] = { category: detectCategory(name, addr), status: 'Unsorted', folder: 'Uncategorized' };
                 saveState();
                 populateDropdowns();
                 applyFiltersAndRender();
@@ -1060,8 +1194,25 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
         });
     }
 
-    if (searchDropdown.children.length === 0) {
-        searchDropdown.innerHTML = '<div class="dropdown-item" style="opacity:0.5;cursor:default;">No results found</div>';
+    if (localMatches.length === 0 && nominatimResults.length === 0) {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.innerHTML = `<span class="item-icon">➕</span><div class="item-text"><div class="item-name">Add "${query}" as new place</div><div class="item-addr">We'll try to find the location automatically</div></div>`;
+        item.addEventListener('click', () => {
+            closeSearchDropdown();
+            const name = query;
+            searchInput.value = '';
+            closeDrawer();
+            const newId = `manual-${Date.now()}`;
+            const newPlace = { id: newId, name, address: name, url: '#', lat: 0, lng: 0 };
+            allPlaces.push(newPlace);
+            triageData[newId] = { category: detectCategory(name, ''), status: 'Unsorted', folder: 'Uncategorized' };
+            saveState();
+            populateDropdowns();
+            applyFiltersAndRender();
+            openTriagePanel(newPlace);
+        });
+        searchDropdown.appendChild(item);
     }
 
     searchDropdown.classList.remove('hidden');
@@ -1098,7 +1249,11 @@ searchInput.addEventListener('input', () => {
 });
 
 searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSearchDropdown();
+    if (e.key === 'Escape') { closeSearchDropdown(); return; }
+    if (e.key === 'Enter') {
+        const first = searchDropdown.querySelector('.dropdown-item');
+        if (first) { e.preventDefault(); first.click(); }
+    }
 });
 
 document.addEventListener('click', (e) => {
@@ -1133,6 +1288,83 @@ if (folderSearchInputInstance) {
 }
 
 document.addEventListener('DOMContentLoaded', initMap);
+
+// ─── Mobile Drawer ────────────────────────────────────────────────────────────
+
+const drawerOpenBtn = document.getElementById('drawer-open-btn');
+const drawerOverlay = document.getElementById('drawer-overlay');
+const drawerSidebar = document.getElementById('mobile-sheet');
+
+function openDrawer() {
+    drawerSidebar.classList.add('drawer-open');
+    drawerOverlay.classList.add('visible');
+    drawerOverlay.style.display = 'block';
+}
+
+function closeDrawer() {
+    drawerSidebar.classList.remove('drawer-open');
+    drawerOverlay.classList.remove('visible');
+    setTimeout(() => {
+        if (!drawerSidebar.classList.contains('drawer-open')) {
+            drawerOverlay.style.display = '';
+        }
+    }, 300);
+}
+
+drawerOpenBtn && drawerOpenBtn.addEventListener('click', openDrawer);
+drawerOverlay && drawerOverlay.addEventListener('click', closeDrawer);
+
+// FAB opens drawer and focuses search
+const fabAdd = document.getElementById('fab-add');
+fabAdd && fabAdd.addEventListener('click', () => {
+    openDrawer();
+    setTimeout(() => document.getElementById('local-search-input')?.focus(), 350);
+});
+
+// Help modal
+const helpBtn = document.getElementById('help-btn');
+const helpModal = document.getElementById('help-modal');
+const helpClose = document.getElementById('help-modal-close');
+const helpBackdrop = document.getElementById('help-modal-backdrop');
+
+helpBtn && helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
+helpClose && helpClose.addEventListener('click', () => helpModal.classList.add('hidden'));
+helpBackdrop && helpBackdrop.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+// Folders collapsible toggle
+const foldersToggle = document.getElementById('folders-toggle');
+const foldersBody = document.getElementById('folders-body');
+const foldersChevron = document.getElementById('folders-chevron');
+const activeFolderLabel = document.getElementById('active-folder-label');
+
+let foldersCollapsed = false;
+
+foldersToggle && foldersToggle.addEventListener('click', (e) => {
+    if (e.target.closest('#add-folder-btn')) return;
+    foldersCollapsed = !foldersCollapsed;
+    foldersBody.classList.toggle('collapsed', foldersCollapsed);
+    foldersChevron.classList.toggle('collapsed', foldersCollapsed);
+});
+
+
+// Update active folder label in collapsed header
+function updateActiveFolderLabel() {
+    if (!activeFolderLabel) return;
+    activeFolderLabel.textContent = activeFolderFilter ? `· ${activeFolderFilter}` : '';
+}
+
+// Mobile theme toggle (topbar)
+document.getElementById('theme-toggle-mobile')?.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('mapfolio_theme', nextTheme);
+    // keep both toggle buttons in sync
+    const mobileBtn = document.getElementById('theme-toggle-mobile');
+    if (mobileBtn) mobileBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌓';
+    const sidebarBtn = document.getElementById('theme-toggle');
+    if (sidebarBtn) sidebarBtn.textContent = nextTheme === 'dark' ? '☀️' : '🌓';
+});
 
 // ─── Mobile Bottom Sheet ──────────────────────────────────────────────────────
 

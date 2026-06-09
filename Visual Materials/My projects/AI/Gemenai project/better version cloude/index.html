@@ -14,6 +14,77 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <!-- Mobile top bar -->
+    <header class="topbar" id="topbar">
+        <button class="topbar-menu-btn" id="drawer-open-btn" aria-label="Open menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            <span>Menu</span>
+        </button>
+        <span class="topbar-title">📍 MapFolio</span>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button id="help-btn" class="topbar-icon-btn" title="How to use MapFolio">?</button>
+            <button id="theme-toggle-mobile" class="theme-toggle-btn" title="Toggle Theme">🌓</button>
+        </div>
+    </header>
+
+    <!-- Help modal -->
+    <div id="help-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="help-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>How to use MapFolio</h2>
+                <button class="help-modal-close" id="help-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+
+                <div class="help-section">
+                    <div class="help-section-icon">➕</div>
+                    <div>
+                        <h3>Add a place manually</h3>
+                        <p>Tap <strong>Menu → Search</strong>, type any place name or address. Results appear below — tap <strong>"Add new place"</strong> to pin it on your map.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📥</div>
+                    <div>
+                        <h3>Import from Google Maps</h3>
+                        <p>This is a 4-step process — takes about 5 minutes the first time:</p>
+                        <ol class="help-steps">
+                            <li>Open <strong>Google Takeout</strong> — search it in Google or go to <em>takeout.google.com</em></li>
+                            <li>Click <strong>"Deselect all"</strong>, then scroll down and tick only <strong>"Maps (your places)"</strong></li>
+                            <li>Click <strong>Next step → Create export</strong>. Google emails you a download link (usually within a few minutes).</li>
+                            <li>Download the ZIP file → open it → find the <strong>Takeout / Maps</strong> folder → you'll see files ending in <strong>.json</strong> or <strong>.kml / .kmz</strong></li>
+                            <li>Back in MapFolio, tap <strong>Menu → Import Places</strong> and select those files. Done! 🎉</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📁</div>
+                    <div>
+                        <h3>Folders &amp; categories</h3>
+                        <p>Imported files become <strong>folders</strong> automatically. Tap a folder to filter the map to just those pins. Each pin can also have a <strong>category</strong> (Restaurant, Museum…) and a <strong>status</strong> (Want to Go, Loved It…).</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📌</div>
+                    <div>
+                        <h3>Edit a place</h3>
+                        <p>Tap any pin on the map to open its details. Change the name, category, status or folder, then tap <strong>Save</strong>.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer backdrop -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+
     <main class="app-container">
         <aside class="sidebar" id="mobile-sheet" data-state="collapsed">
             <div class="sheet-handle" id="sheet-handle">
@@ -22,10 +93,12 @@
             <div class="sidebar-scroll-body">
             <header class="sidebar-header">
                 <div class="header-top">
-                    <h1>📍 MapFolio</h1>
+                    <div>
+                        <h1>📍 MapFolio</h1>
+                        <p class="sidebar-subtitle">Organize your saved places.</p>
+                    </div>
                     <button id="theme-toggle" class="theme-toggle-btn" title="Toggle Theme">🌓</button>
                 </div>
-                <p>Organize your saved places.</p>
             </header>
 
             <section class="search-section">
@@ -76,13 +149,18 @@
 
           <section class="folders-section section-block">
     <div class="section-header-row">
-        <h3>Folders</h3>
+        <div class="folders-toggle" id="folders-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
+            <h3 style="margin:0;">Folders <span class="active-folder-label" id="active-folder-label"></span></h3>
+            <span class="folders-chevron" id="folders-chevron">▾</span>
+        </div>
         <button id="add-folder-btn" class="icon-action-btn" title="Create New Folder">➕</button>
     </div>
-    <div class="folder-search-wrapper" style="margin: 0.5rem 0; width: 100%;">
-        <input type="text" id="folder-search-input" placeholder="Search folders..." class="search-input" style="padding: 0.4rem 0.6rem; font-size: 0.8rem; width: 100%; box-sizing: border-box;" autocomplete="off" />
+    <div id="folders-body">
+        <div class="folder-search-wrapper" style="margin: 0.5rem 0; width: 100%;">
+            <input type="text" id="folder-search-input" placeholder="Search folders..." class="search-input" style="padding: 0.4rem 0.6rem; font-size: 0.8rem; width: 100%; box-sizing: border-box;" autocomplete="off" />
+        </div>
+        <ul id="folders-list" class="folders-list inline-scroll" style="list-style: none; padding: 0; margin: 0;"></ul>
     </div>
-    <ul id="folders-list" class="folders-list inline-scroll" style="list-style: none; padding: 0; margin: 0;"></ul>
 </section>
             <div id="unpinned-section" class="unpinned-section hidden">
                 <div id="unpinned-header" class="unpinned-header">
@@ -93,13 +171,23 @@
             </div>
 
             </div><!-- /.sidebar-scroll-body -->
+            <!-- Empty state shown when no places loaded -->
+            <div id="empty-state" class="empty-state hidden">
+                <div class="empty-state-icon">🗺️</div>
+                <h3>Your map is empty</h3>
+                <p>Import your Google Maps saved places, or try the demo to see how MapFolio works.</p>
+                <button id="load-demo-btn" class="demo-btn">✨ Load demo places</button>
+            </div>
+
             <div class="sidebar-footer">
                 <span id="places-footer">📍 0 places</span>
+                <button id="clear-demo-btn" class="clear-demo-btn hidden" title="Remove demo places">✕ Clear demo</button>
             </div>
         </aside>
 
         <section class="map-container">
             <div id="map"></div>
+            <button class="fab" id="fab-add" title="Add a place">+</button>
             
             <div id="triage-panel" class="triage-panel hidden">
                 <button id="close-triage" class="close-btn">&times;</button>
@@ -154,36 +242,22 @@
                 </div>
 
                 <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                    <button id="save-coords-btn" class="action-btn save-modifications-btn">💾 Save layout modifications</button>
+                    <button id="save-coords-btn" class="action-btn save-modifications-btn">💾 Save changes</button>
                 </div>
 
-                <button id="delete-place-btn" class="delete-place-btn">🗑️ Delete spot from database</button>
+                <button id="delete-place-btn" class="delete-place-btn">🗑️ Delete this place</button>
 
                 <div id="delete-confirm" class="delete-confirm hidden">
-                    <p>Confirm entry elimination?</p>
+                    <p>Are you sure? This can't be undone.</p>
                     <div class="delete-confirm-buttons">
-                        <button id="confirm-delete-btn" class="action-btn confirm-yes-btn">Yes</button>
-                        <button id="cancel-delete-btn" class="action-btn confirm-no-btn">No</button>
+                        <button id="confirm-delete-btn" class="action-btn confirm-yes-btn">Yes, delete</button>
+                        <button id="cancel-delete-btn" class="action-btn confirm-no-btn">Cancel</button>
                     </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <nav class="mobile-nav" id="mobile-nav">
-        <button class="mobile-nav-btn active" id="nav-map" onclick="mobileNavMap()">
-            <span class="nav-icon">🗺️</span>
-            <span>Map</span>
-        </button>
-        <button class="mobile-nav-btn" id="nav-places" onclick="mobileNavPlaces()">
-            <span class="nav-icon">📋</span>
-            <span>Places</span>
-        </button>
-        <button class="mobile-nav-btn" id="nav-import" onclick="document.getElementById('file-upload').click()">
-            <span class="nav-icon">⬆️</span>
-            <span>Import</span>
-        </button>
-    </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
