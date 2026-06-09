@@ -15,7 +15,11 @@
 </head>
 <body>
     <main class="app-container">
-        <aside class="sidebar">
+        <aside class="sidebar" id="mobile-sheet" data-state="collapsed">
+            <div class="sheet-handle" id="sheet-handle">
+                <div class="sheet-handle-bar"></div>
+            </div>
+            <div class="sidebar-scroll-body">
             <header class="sidebar-header">
                 <div class="header-top">
                     <h1>📍 MapFolio</h1>
@@ -25,21 +29,24 @@
             </header>
 
             <section class="search-section">
-                <div class="search-input-wrapper">
+                <div class="search-input-wrapper" style="position:relative;">
                     <span class="search-icon">🔍</span>
-                    <input type="text" id="local-search-input" placeholder="Search or add a new place..." class="search-input local-search" autocomplete="off" />
+                    <input type="text" id="local-search-input" placeholder="Search your places or find new ones..." class="search-input local-search" autocomplete="off" />
+                    <div id="place-search-dropdown" class="place-search-dropdown hidden"></div>
                 </div>
             </section>
 
             <section class="upload-section">
-                <div class="action-buttons" style="display: flex; gap: 0.5rem; width: 100%;">
-                    <label for="file-upload" class="action-btn upload-btn" style="flex: 1;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                        Import Places
-                    </label>
-                    <input id="file-upload" type="file" accept=".json,.kmz,.kml,.csv" multiple style="display: none;" />
-                </div>
-                <p class="upload-hint">Supports: Google Takeout JSON · KMZ/KML · CSV</p>
+                <label for="file-upload" class="import-btn">
+                    <span class="import-btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </span>
+                    <span class="import-btn-text">
+                        <span class="import-btn-title">Import Places</span>
+                        <span class="import-btn-hint">JSON · KMZ / KML · CSV</span>
+                    </span>
+                </label>
+                <input id="file-upload" type="file" accept=".json,.kmz,.kml,.csv" multiple style="display: none;" />
             </section>
 
             <section class="filters-section section-block">
@@ -55,32 +62,40 @@
                         <label for="filter-status">Status</label>
                         <select id="filter-status">
                             <option value="All">All Statuses</option>
-                            <option value="Want to Try">Want to Try (Blue)</option>
-                            <option value="Been There">Been There (Yellow)</option>
-                            <option value="Loved It">Loved It (Green)</option>
-                            <option value="Skip It">Skip It (Red)</option>
-                            <option value="Unsorted">Unsorted (Grey)</option>
+                            <option value="Favourite">Favourite ⭐</option>
+                            <option value="Want to Go">Want to Go 🔵</option>
+                            <option value="Been There">Been There 🟡</option>
+                            <option value="Loved It">Loved It 🟢</option>
+                            <option value="Meh">Meh 🟠</option>
+                            <option value="Skip It">Skip It 🔴</option>
+                            <option value="Unsorted">Unsorted ⚪</option>
                         </select>
                     </div>
                 </div>
             </section>
 
-            <section class="folders-section section-block">
-                <div class="section-header-row">
-                    <h3>Folders</h3>
-                    <button id="add-folder-btn" class="icon-action-btn" title="Create New Folder">➕</button>
+          <section class="folders-section section-block">
+    <div class="section-header-row">
+        <h3>Folders</h3>
+        <button id="add-folder-btn" class="icon-action-btn" title="Create New Folder">➕</button>
+    </div>
+    <div class="folder-search-wrapper" style="margin: 0.5rem 0; width: 100%;">
+        <input type="text" id="folder-search-input" placeholder="Search folders..." class="search-input" style="padding: 0.4rem 0.6rem; font-size: 0.8rem; width: 100%; box-sizing: border-box;" autocomplete="off" />
+    </div>
+    <ul id="folders-list" class="folders-list inline-scroll" style="list-style: none; padding: 0; margin: 0;"></ul>
+</section>
+            <div id="unpinned-section" class="unpinned-section hidden">
+                <div id="unpinned-header" class="unpinned-header">
+                    <span>⚠️ Unpinned places</span>
+                    <span id="unpinned-count" class="unpinned-count">0</span>
                 </div>
-                <ul id="folders-list" class="folders-list inline-scroll"></ul>
-            </section>
+                <ul id="unpinned-list" class="unpinned-list hidden"></ul>
+            </div>
 
-            <section class="places-section section-block">
-                <div class="places-header">
-                    <h2>Places <span id="place-count">(0)</span></h2>
-                </div>
-                <ul id="places-list" class="places-list main-list-scroll">
-                    <div class="empty-state">Upload a file to see your places here.</div>
-                </ul>
-            </section>
+            </div><!-- /.sidebar-scroll-body -->
+            <div class="sidebar-footer">
+                <span id="places-footer">📍 0 places</span>
+            </div>
         </aside>
 
         <section class="map-container">
@@ -106,21 +121,28 @@
                             <input type="text" id="triage-lng" placeholder="e.g. -8.6732" class="search-input" style="padding: 0.4rem;" />
                         </div>
                     </div>
+                    <div id="geocode-status" class="geocode-status hidden"></div>
 
                     <div class="form-group">
-                        <label>Category Layout Mapping</label>
+                        <label style="display:flex; justify-content:space-between; align-items:center;">
+                            Category
+                            <button id="add-category-btn" class="icon-action-btn" title="Manage custom categories" style="font-size:0.8rem;">➕ New</button>
+                        </label>
                         <select id="triage-category">
                             <option value="Unassigned">Select a Category</option>
                         </select>
+                        <div id="custom-categories-list" class="custom-categories-list hidden"></div>
                     </div>
                     <div class="form-group">
                         <label>Visits Tracker Status</label>
                         <select id="triage-status">
-                            <option value="Unsorted">Unsorted</option>
-                            <option value="Want to Try">Want to Try</option>
-                            <option value="Been There">Been There</option>
-                            <option value="Loved It">Loved It</option>
-                            <option value="Skip It">Skip It</option>
+                            <option value="Unsorted">⚪ Unsorted</option>
+                            <option value="Favourite">⭐ Favourite</option>
+                            <option value="Want to Go">🔵 Want to Go</option>
+                            <option value="Been There">🟡 Been There</option>
+                            <option value="Loved It">🟢 Loved It</option>
+                            <option value="Meh">🟠 Meh</option>
+                            <option value="Skip It">🔴 Skip It</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -135,6 +157,8 @@
                     <button id="save-coords-btn" class="action-btn save-modifications-btn">💾 Save layout modifications</button>
                 </div>
 
+                <button id="delete-place-btn" class="delete-place-btn">🗑️ Delete spot from database</button>
+
                 <div id="delete-confirm" class="delete-confirm hidden">
                     <p>Confirm entry elimination?</p>
                     <div class="delete-confirm-buttons">
@@ -142,10 +166,24 @@
                         <button id="cancel-delete-btn" class="action-btn confirm-no-btn">No</button>
                     </div>
                 </div>
-                <button id="delete-place-btn" class="delete-place-btn">🗑️ Delete spot from database</button>
             </div>
         </section>
     </main>
+
+    <nav class="mobile-nav" id="mobile-nav">
+        <button class="mobile-nav-btn active" id="nav-map" onclick="mobileNavMap()">
+            <span class="nav-icon">🗺️</span>
+            <span>Map</span>
+        </button>
+        <button class="mobile-nav-btn" id="nav-places" onclick="mobileNavPlaces()">
+            <span class="nav-icon">📋</span>
+            <span>Places</span>
+        </button>
+        <button class="mobile-nav-btn" id="nav-import" onclick="document.getElementById('file-upload').click()">
+            <span class="nav-icon">⬆️</span>
+            <span>Import</span>
+        </button>
+    </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
