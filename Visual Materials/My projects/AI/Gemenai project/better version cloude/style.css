@@ -799,11 +799,96 @@ body {
 .fab { display: none; }
 
 @media (min-width: 768px) {
-    .app-container { flex-direction: row; }
-    .sidebar { width: 380px; height: 100vh; border-top: none; border-right: 1px solid var(--border); }
-    .map-container { height: 100vh; }
-    .triage-panel { bottom: 2rem; left: 2rem; transform: none; }
+
+    /* ── Topbar ── */
+    .topbar {
+        display: flex;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 56px;
+        padding: 0 1.5rem;
+        background: #ffde59;
+        border-bottom: none;
+        z-index: 700;
+        box-shadow: 0 2px 8px rgba(255,222,89,0.4);
+    }
+    .topbar-menu-btn { display: none; }
+    .topbar-title { font-size: 1.15rem; }
+
+    /* ── Layout ── */
+    .app-container { display: block; }
+
+    /* ── Sidebar: always-visible left panel ── */
+    .sidebar {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        width: 320px;
+        height: calc(100vh - 56px);
+        transform: none !important;
+        border-radius: 0;
+        border-top: none;
+        border-right: 1px solid var(--border);
+        border-bottom: none;
+        overflow-y: auto;
+        z-index: 100;
+        box-shadow: none;
+    }
+    .drawer-overlay { display: none !important; }
     .sheet-handle { display: none; }
+
+    /* ── Map ── */
+    .map-container {
+        position: fixed;
+        top: 56px;
+        left: 320px;
+        right: 0;
+        bottom: 0;
+        height: auto !important;
+    }
+    #map { width: 100%; height: 100%; }
+
+    /* ── Triage panel: floating card right side ── */
+    .triage-panel {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        left: auto;
+        width: 360px;
+        max-width: 360px;
+        transform: none;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border);
+    }
+    .triage-panel.hidden {
+        display: none !important;
+        pointer-events: none;
+    }
+    .triage-panel:not(.hidden) {
+        transform: none;
+        transition: none;
+    }
+    .triage-panel::before { display: none; }
+
+    /* ── FAB ── */
+    .fab {
+        display: flex;
+        position: absolute;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 450;
+    }
+
+    /* ── Leaflet ── */
+    .leaflet-top, .leaflet-bottom { z-index: 400 !important; }
+    .leaflet-control { z-index: 400 !important; }
+
+    /* ── Misc ── */
+    .import-toast { bottom: 1.5rem; left: 340px; transform: translateX(0) translateY(20px); }
+    .import-toast.visible { transform: translateX(0) translateY(0); }
+    .filters-container { flex-direction: row; }
 }
 
 /* ─── Mobile layout ───────────────────────────────────────────────────── */
