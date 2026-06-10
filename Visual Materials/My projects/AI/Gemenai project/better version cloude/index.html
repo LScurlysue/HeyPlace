@@ -85,6 +85,54 @@
         </div>
     </div>
 
+    <!-- Trip planner setup modal -->
+    <div id="trip-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="trip-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>🗂️ Plan a trip</h2>
+                <button class="help-modal-close" id="trip-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <div class="form-group">
+                    <label for="trip-folder-select">Which places?</label>
+                    <select id="trip-folder-select"></select>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label>Include statuses</label>
+                    <div id="trip-status-filters" class="trip-status-filters"></div>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label>Getting around</label>
+                    <div class="trip-mode-toggle" id="trip-mode-toggle">
+                        <label class="trip-mode-option"><input type="radio" name="trip-mode" value="walk" checked /> 🚶 Walking</label>
+                        <label class="trip-mode-option"><input type="radio" name="trip-mode" value="drive" /> 🚗 Driving</label>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label for="trip-days-input">How many days?</label>
+                    <input type="number" id="trip-days-input" min="1" max="14" value="3" class="search-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div id="trip-modal-hint" class="trip-modal-hint"></div>
+                <button id="trip-generate-btn" class="action-btn save-modifications-btn" style="margin-top:1rem;width:100%;">✨ Build my itinerary</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats modal -->
+    <div id="stats-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="stats-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>📊 My stats</h2>
+                <button class="help-modal-close" id="stats-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body" id="stats-body"></div>
+        </div>
+    </div>
+
     <!-- Drawer backdrop -->
     <div class="drawer-overlay" id="drawer-overlay"></div>
 
@@ -142,12 +190,35 @@
                             <option value="Want to Go">Want to Go 🔵</option>
                             <option value="Been There">Been There 🟡</option>
                             <option value="Loved It">Loved It 🟢</option>
-                            <option value="Meh">Meh 🟠</option>
+                            <option value="Meh">Meh 🟤</option>
                             <option value="Skip It">Skip It 🔴</option>
                             <option value="Unsorted">Unsorted ⚪</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label for="filter-country">Country</label>
+                        <select id="filter-country">
+                            <option value="All">🌍 All Countries</option>
+                        </select>
+                    </div>
                 </div>
+            </section>
+
+            <section class="trip-section section-block">
+                <button id="trip-planner-btn" class="trip-planner-btn">
+                    <span class="trip-btn-icon">🗂️</span>
+                    <span class="trip-btn-text">
+                        <span class="trip-btn-title">Trip planner</span>
+                        <span class="trip-btn-hint">Turn a folder into a day-by-day itinerary</span>
+                    </span>
+                </button>
+                <button id="stats-btn" class="trip-planner-btn">
+                    <span class="trip-btn-icon">📊</span>
+                    <span class="trip-btn-text">
+                        <span class="trip-btn-title">My stats</span>
+                        <span class="trip-btn-hint">Countries, categories and travel progress</span>
+                    </span>
+                </button>
             </section>
 
           <section class="folders-section section-block">
@@ -169,6 +240,7 @@
                 <div id="unpinned-header" class="unpinned-header">
                     <span>⚠️ Unpinned places</span>
                     <span id="unpinned-count" class="unpinned-count">0</span>
+                    <button id="geocode-all-btn" title="Auto-geocode all unpinned places" style="margin-left:auto;padding:2px 8px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">📍 Fix All</button>
                 </div>
                 <ul id="unpinned-list" class="unpinned-list hidden"></ul>
             </div>
@@ -191,6 +263,18 @@
         <section class="map-container">
             <div id="map"></div>
             <button class="fab" id="fab-add" title="Add a place">+</button>
+
+            <div id="trip-panel" class="trip-panel hidden">
+                <div class="trip-panel-header">
+                    <div>
+                        <h3 id="trip-panel-title">Your trip</h3>
+                        <span id="trip-panel-subtitle" class="trip-panel-subtitle"></span>
+                    </div>
+                    <button id="trip-exit-btn" class="close-btn" title="Exit trip mode">&times;</button>
+                </div>
+                <div id="trip-day-tabs" class="trip-day-tabs"></div>
+                <div id="trip-day-body" class="trip-day-body"></div>
+            </div>
             
             <div id="triage-panel" class="triage-panel hidden">
                 <button id="close-triage" class="close-btn">&times;</button>
@@ -200,6 +284,10 @@
                 <div class="gmaps-link-container">
                     <a id="triage-url" href="#" target="_blank" class="triage-link">🌐 View on Google Maps →</a>
                 </div>
+
+                <!-- ── AFFILIATE BOOK IT BUTTON ── -->
+                <div id="affiliate-bar" class="hidden" style="margin:0.4rem 0 0.2rem;display:flex;gap:0.4rem;flex-wrap:wrap;"></div>
+                <!-- ── END AFFILIATE ── -->
                 
                 <div class="triage-form">
                     <div class="coordinates-row" style="display: flex; gap: 0.5rem; width: 100%;">
@@ -217,7 +305,7 @@
                     <div class="form-group">
                         <label style="display:flex; justify-content:space-between; align-items:center;">
                             Category
-                            <button id="add-category-btn" class="icon-action-btn" title="Manage custom categories" style="font-size:0.8rem;">➕ New</button>
+                            <button id="add-category-btn" class="icon-action-btn" title="Add, rename or delete your custom categories" style="font-size:0.8rem;">⚙️ Manage</button>
                         </label>
                         <select id="triage-category">
                             <option value="Unassigned">Select a Category</option>
@@ -232,7 +320,7 @@
                             <option value="Want to Go">🔵 Want to Go</option>
                             <option value="Been There">🟡 Been There</option>
                             <option value="Loved It">🟢 Loved It</option>
-                            <option value="Meh">🟠 Meh</option>
+                            <option value="Meh">🟤 Meh</option>
                             <option value="Skip It">🔴 Skip It</option>
                         </select>
                     </div>
