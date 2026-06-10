@@ -157,11 +157,49 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: var(--bg-main);
-    padding: 0.5rem 0.75rem;
+    background: var(--bg-panel);
+    padding: 0.6rem 0.75rem;
     border-radius: var(--radius-md);
     font-size: 0.875rem;
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border);
+    transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+.folder-item:hover {
+    border-color: #ffde59;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 222, 89, 0.25);
+}
+.folder-item.active {
+    border-color: #ffde59;
+    background: var(--item-hover);
+}
+
+.folder-name-text {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    overflow: hidden;
+}
+.folder-name-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.folder-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: #fff7d6;
+    font-size: 1.05rem;
+    color: #9a7b00;
+}
+[data-theme="dark"] .folder-icon {
+    background: rgba(255, 222, 89, 0.15);
+    color: #ffde59;
 }
 
 .folder-actions button { background: transparent; border: none; cursor: pointer; margin-left: 0.3rem; }
@@ -173,6 +211,7 @@ body {
 .place-item.active { background-color: var(--item-hover); border-left: 4px solid var(--primary); }
 
 .emoji-marker {
+    position: relative;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -183,6 +222,21 @@ body {
     box-shadow: var(--shadow-md);
     transition: transform var(--transition);
     color: white !important;
+}
+
+.emoji-marker.needs-review {
+    box-shadow: 0 0 0 3px #f59e0b, var(--shadow-md);
+}
+.review-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 12px;
+    line-height: 1;
+    background: #fff;
+    border-radius: 50%;
+    padding: 1px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .emoji-marker:hover { transform: scale(1.12); }
@@ -220,6 +274,84 @@ body {
     opacity: 0.6;
 }
 .custom-cat-delete:hover { opacity: 1; }
+
+/* Emoji picker */
+.emoji-pick-btn {
+    width: 44px;
+    height: 34px;
+    padding: 0.3rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.emoji-pick-btn:hover { border-color: var(--primary); }
+.emoji-picker-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1190;
+}
+.emoji-picker-popover {
+    position: absolute;
+    z-index: 1200;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    padding: 0.5rem;
+    width: 220px;
+}
+.emoji-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.15rem;
+    max-height: 180px;
+    overflow-y: auto;
+}
+.emoji-picker-option {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.15rem;
+    border-radius: 6px;
+    padding: 0.25rem 0;
+    line-height: 1;
+}
+.emoji-picker-option:hover { background: var(--bg-hover, rgba(0,0,0,0.06)); }
+.emoji-picker-custom-row {
+    display: flex;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--border);
+}
+.emoji-picker-custom-row input {
+    flex: 1;
+    width: 0;
+    padding: 0.25rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    text-align: center;
+}
+.emoji-picker-custom-row button {
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 6px;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.78rem;
+}
 
 /* Sidebar footer */
 .sidebar-footer {
@@ -296,6 +428,35 @@ body {
     color: var(--text-main);
     outline: none;
     font-size: 0.9rem;
+}
+
+/* Search bar: icon and field on one line, modern pill style */
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.search-icon {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.95rem;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 1;
+}
+.search-section .search-input {
+    border-radius: 999px;
+    padding: 0.65rem 1rem 0.65rem 2.6rem;
+    background: var(--bg-main);
+    font-size: 0.9rem;
+    border: 1.5px solid var(--border);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.search-section .search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255, 222, 89, 0.25);
 }
 
 .form-group {
@@ -394,6 +555,39 @@ body {
     margin-bottom: 1rem;
     border-bottom: 1px dashed var(--border);
     padding-bottom: 0.5rem;
+}
+
+.needs-review-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    background: #fffbeb;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+    border-radius: var(--radius-md);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin: -0.5rem 0 0.85rem;
+}
+[data-theme="dark"] .needs-review-banner {
+    background: #451a03;
+    color: #fcd34d;
+    border-color: #b45309;
+}
+.needs-review-dismiss {
+    flex-shrink: 0;
+    margin-left: auto;
+    background: #f59e0b;
+    color: #1c1917;
+    border: none;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .triage-link {
@@ -786,13 +980,15 @@ body {
     text-transform: none;
     letter-spacing: 0;
 }
-#folders-body {
+#folders-body,
+#saved-trips-body {
     overflow: hidden;
     transition: max-height 0.28s ease, opacity 0.2s ease;
     max-height: 600px;
     opacity: 1;
 }
-#folders-body.collapsed {
+#folders-body.collapsed,
+#saved-trips-body.collapsed {
     max-height: 0;
     opacity: 0;
     pointer-events: none;
@@ -917,7 +1113,10 @@ body {
     /* ── Misc ── */
     .import-toast { bottom: 1.5rem; left: 340px; transform: translateX(0) translateY(20px); }
     .import-toast.visible { transform: translateX(0) translateY(0); }
-    .filters-container { flex-direction: row; }
+
+    /* Stack filters on desktop too — the 320px sidebar is too narrow for
+       Category/Status/Country selects to share a row without truncation. */
+    .filters-container { flex-direction: column; gap: 0.5rem; }
 }
 
 /* ─── Mobile layout ───────────────────────────────────────────────────── */
@@ -1032,23 +1231,6 @@ body {
         padding: 0.85rem 1.1rem;
     }
     .section-block { padding: 0.85rem 1.1rem; }
-
-    /* Pill search bar */
-    .search-section .search-input {
-        border-radius: 99px;
-        padding: 0.6rem 1rem 0.6rem 2.4rem;
-        background: var(--bg-main);
-        font-size: 0.9rem;
-        border: 1.5px solid var(--border);
-    }
-    .search-section .search-icon {
-        position: absolute;
-        left: 0.85rem;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 0.95rem;
-        pointer-events: none;
-    }
 
     /* Folder items: bigger touch targets */
     .folder-item {
@@ -1172,7 +1354,22 @@ body {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(255, 222, 89, 0.25);
 }
-.trip-btn-icon { font-size: 1.3rem; }
+.trip-btn-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: #fff7d6;
+    font-size: 1.1rem;
+    color: #9a7b00;
+}
+[data-theme="dark"] .trip-btn-icon {
+    background: rgba(255, 222, 89, 0.15);
+    color: #ffde59;
+}
 .trip-btn-text { display: flex; flex-direction: column; gap: 0.1rem; }
 .trip-btn-title { font-weight: 700; font-size: 0.9rem; }
 .trip-btn-hint { font-size: 0.72rem; color: var(--text-muted); }
@@ -1227,6 +1424,31 @@ body {
 }
 .trip-panel-header h3 { margin: 0; font-size: 1rem; }
 .trip-panel-subtitle { font-size: 0.75rem; color: var(--text-muted); }
+
+.trip-panel-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.trip-save-btn {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-main);
+    color: var(--text-main);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.trip-save-btn:hover { border-color: #ffde59; }
+.trip-exit-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+}
 
 .trip-day-tabs {
     display: flex;

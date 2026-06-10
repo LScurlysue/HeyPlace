@@ -9,6 +9,7 @@ let map = null;
 let markers = [];
 let clusterGroup = null;
 let tripState = { active: false, days: [], activeDay: 0, label: '' };
+let savedTrips = JSON.parse(localStorage.getItem('mapfolio_trips')) || [];
 let foldersShowAll = false;
 const FOLDERS_VISIBLE_LIMIT = 5;
 
@@ -273,6 +274,9 @@ function initMap() {
         updateEmptyState();
     }
 
+    renderSavedTripsList();
+    restoreActiveTrip();
+
     // Recalculate map size after CSS layout settles (fixes topbar offset)
     setTimeout(() => map && map.invalidateSize(), 100);
 }
@@ -407,15 +411,38 @@ Array.from(placemarks).forEach((pm, i) => {
         folder: contextName
     };
 
+    const finalLat = isNaN(lat) ? 0 : lat;
+    const finalLng = isNaN(lng) ? 0 : lng;
+
     allPlaces.push({
         id: placeId,
         name: name,
         address: address || '',
         url: '#',
-        lat: isNaN(lat) ? 0 : lat,
-        lng: isNaN(lng) ? 0 : lng
+        lat: finalLat,
+        lng: finalLng
     });
     importedCount++;
+
+    // No coordinates in the KML — geocode by name via the queue, like CSV/JSON imports
+    if (finalLat === 0 && finalLng === 0) {
+        geocodePlace(name, (result) => {
+            if (result) {
+                const idx = allPlaces.findIndex(p => p.id === placeId);
+                if (idx >= 0) {
+                    const rLat = parseFloat(result.lat);
+                    const rLng = parseFloat(result.lon);
+                    allPlaces[idx].lat = rLat;
+                    allPlaces[idx].lng = rLng;
+                    if (isFarFromFolder(contextName, placeId, rLat, rLng)) {
+                        triageData[placeId].needsReview = true;
+                    }
+                    saveState();
+                    applyFiltersAndRender();
+                }
+            }
+        }, contextName);
+    }
 });
 
     saveState();
@@ -461,9 +488,21 @@ function parseCSVLine(line) {
 const geocodeQueue = [];
 let geocodeRunning = false;
 
-// Generate progressively simpler query variants for stubborn place names
-function queryVariants(name) {
-    const variants = [name];
+// Folder names that don't represent a real place and shouldn't be used as geocoding context
+const GENERIC_FOLDER_NAMES = new Set([
+    'imported', 'uncategorized', 'unsorted', 'wishlist', 'favorites', 'favourites',
+    'saved places', 'want to go', 'starred places', 'my places', 'done'
+]);
+
+// Generate progressively simpler query variants for stubborn place names.
+// If contextName looks like a real place (e.g. a city/folder name), try it first
+// to keep generic place names (e.g. "Place de la République") in the right region.
+function queryVariants(name, contextName) {
+    const variants = [];
+    if (contextName && !GENERIC_FOLDER_NAMES.has(contextName.trim().toLowerCase())) {
+        variants.push(`${name}, ${contextName.trim()}`);
+    }
+    variants.push(name);
     // After " - " keep only the second part (e.g. "OUTDOOR - Glacier Canyon" → "Glacier Canyon")
     if (name.includes(' - ')) variants.push(name.split(' - ').pop().trim());
     // Before " - " (e.g. "Café du Coin - Paris" → "Café du Coin")
@@ -481,9 +520,35 @@ function queryVariants(name) {
     return [...new Set(variants.filter(v => v.length > 2))];
 }
 
-function geocodePlace(query, callback) {
-    geocodeQueue.push({ query, callback });
+function geocodePlace(query, callback, contextName) {
+    geocodeQueue.push({ query, callback, contextName });
     if (!geocodeRunning) runGeocodeQueue();
+}
+
+// ── Distance helpers for "needs review" detection ─────────────────────────
+// Note: haversineKm({lat,lng}, {lat,lng}) is defined further below (used by trip planner)
+const NEEDS_REVIEW_DISTANCE_KM = 300;
+
+// Centroid of already-pinned, non-flagged places in a folder. Needs at least
+// 2 reference points before we trust it enough to flag outliers.
+function getFolderCentroid(folderName, excludeId) {
+    const pts = allPlaces.filter(p =>
+        p.id !== excludeId &&
+        (p.lat !== 0 || p.lng !== 0) &&
+        triageData[p.id]?.folder === folderName &&
+        !triageData[p.id]?.needsReview
+    );
+    if (pts.length < 2) return null;
+    const lat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+    const lng = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
+    return { lat, lng };
+}
+
+// Returns true if (lat, lng) is implausibly far from the rest of its folder
+function isFarFromFolder(folderName, placeId, lat, lng) {
+    const centroid = getFolderCentroid(folderName, placeId);
+    if (!centroid) return false;
+    return haversineKm({ lat, lng }, centroid) > NEEDS_REVIEW_DISTANCE_KM;
 }
 
 function fetchWithTimeout(url, options = {}, ms = 5000) {
@@ -515,8 +580,8 @@ async function tryGeocode(q) {
 function runGeocodeQueue() {
     if (geocodeQueue.length === 0) { geocodeRunning = false; return; }
     geocodeRunning = true;
-    const { query, callback } = geocodeQueue.shift();
-    const variants = queryVariants(query);
+    const { query, callback, contextName } = geocodeQueue.shift();
+    const variants = queryVariants(query, contextName);
 
     // Try each variant in sequence until one succeeds
     (async () => {
@@ -533,7 +598,17 @@ function processCSV(text, filenameContext) {
     const lines = text.trim().split('\n');
     if (lines.length < 2) return;
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+    // Some Google Maps exports prefix the CSV with a list title line before
+    // the real header row — scan the first few lines to find the header.
+    let headerRowIdx = 0;
+    for (let i = 0; i < Math.min(5, lines.length); i++) {
+        const candidate = lines[i].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        const hasName = candidate.some(h => h.includes('name') || h.includes('title'));
+        const hasUrl = candidate.some(h => h.includes('url'));
+        if (hasName && hasUrl) { headerRowIdx = i; break; }
+    }
+
+    const headers = lines[headerRowIdx].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
     const nameIdx = headers.findIndex(h => h.includes('name') || h.includes('title'));
     const latIdx = headers.findIndex(h => h.includes('lat'));
     const lngIdx = headers.findIndex(h => h.includes('lon') || h.includes('lng'));
@@ -541,7 +616,7 @@ function processCSV(text, filenameContext) {
     const urlIdx = headers.findIndex(h => h.includes('url'));
     const wktIdx = headers.findIndex(h => h === 'wkt' || h.includes('geometry') || h.includes('wkt'));
 
-    lines.slice(1).forEach((line, i) => {
+    lines.slice(headerRowIdx + 1).forEach((line, i) => {
         if (!line.trim() || line.replace(/,/g, '').trim() === '') return;
 
         const cols = parseCSVLine(line);
@@ -602,13 +677,18 @@ function processCSV(text, filenameContext) {
             if (result) {
                 const idx = allPlaces.findIndex(p => p.id === placeId);
                 if (idx >= 0) {
-                    allPlaces[idx].lat = parseFloat(result.lat);
-                    allPlaces[idx].lng = parseFloat(result.lon);
+                    const rLat = parseFloat(result.lat);
+                    const rLng = parseFloat(result.lon);
+                    allPlaces[idx].lat = rLat;
+                    allPlaces[idx].lng = rLng;
+                    if (isFarFromFolder(filenameContext, placeId, rLat, rLng)) {
+                        triageData[placeId].needsReview = true;
+                    }
                     saveState();
                     applyFiltersAndRender();
                 }
             }
-        });
+        }, filenameContext);
     });
 
     saveState();
@@ -657,13 +737,18 @@ function processGeocodedJSON(data, folderName) {
                 if (result) {
                     const idx = allPlaces.findIndex(p => p.id === placeId);
                     if (idx >= 0) {
-                        allPlaces[idx].lat = parseFloat(result.lat);
-                        allPlaces[idx].lng = parseFloat(result.lon);
+                        const rLat = parseFloat(result.lat);
+                        const rLng = parseFloat(result.lon);
+                        allPlaces[idx].lat = rLat;
+                        allPlaces[idx].lng = rLng;
+                        if (isFarFromFolder(folderName, placeId, rLat, rLng)) {
+                            triageData[placeId].needsReview = true;
+                        }
                         saveState();
                         applyFiltersAndRender();
                     }
                 }
-            });
+            }, folderName);
         }
 
         importedCount++;
@@ -711,22 +796,20 @@ function renderFoldersList() {
         const count = folderCounts[folder] || 0;
         const li = document.createElement('li');
         li.className = 'folder-item';
-        li.style.display = 'flex';
-        li.style.justifyContent = 'space-between';
-        li.style.alignItems = 'center';
-        li.style.padding = '0.5rem';
         li.style.cursor = 'pointer';
 
         li.innerHTML = `
-            <span class="folder-name-text">📁 ${folder} <strong style="opacity: 0.7; font-size: 0.85em;">(${count})</strong></span>
+            <span class="folder-name-text">
+                <span class="folder-icon"><i class="ti ti-folder" aria-hidden="true"></i></span>
+                <span class="folder-name-label">${folder} <strong style="opacity: 0.7; font-size: 0.85em;">(${count})</strong></span>
+            </span>
             <div class="folder-actions" style="display:flex; gap:0.25rem;">
                 <button class="rename-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">✏️</button>
                 <button class="delete-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">🗑️</button>
             </div>
         `;
         if (activeFolderFilter === folder) {
-            li.style.borderColor = 'var(--primary)';
-            li.style.background = 'var(--item-hover)';
+            li.classList.add('active');
         }
 
         li.querySelector('.rename-folder-btn').addEventListener('click', (e) => {
@@ -948,10 +1031,11 @@ function renderMapPins(places) {
         const data = triageData[place.id] || { category: 'Other', status: 'Unsorted' };
         const catConf = getCatConf(data.category);
         const statusClass = `status-${data.status.replace(/ /g, '-')}`;
+        const reviewClass = data.needsReview ? 'needs-review' : '';
 
         const markerIcon = L.divIcon({
             className: 'custom-marker',
-            html: `<div class="emoji-marker ${catConf.cssClass} ${statusClass}">${catConf.emoji}</div>`,
+            html: `<div class="emoji-marker ${catConf.cssClass} ${statusClass} ${reviewClass}">${catConf.emoji}${data.needsReview ? '<span class="review-badge">⚠️</span>' : ''}</div>`,
             iconSize: [34, 34],
             iconAnchor: [17, 17]
         });
@@ -1054,6 +1138,8 @@ function openTriagePanel(place) {
     document.getElementById('triage-panel').classList.remove('hidden');
     document.getElementById('delete-confirm').classList.add('hidden');
     document.getElementById('delete-place-btn').classList.remove('hidden');
+
+    document.getElementById('needs-review-banner').classList.toggle('hidden', !data.needsReview);
 
     renderAffiliateBar(place, data.category);
 
@@ -1196,6 +1282,14 @@ function updateTriageData() {
     saveState();
 }
 
+document.getElementById('dismiss-review-btn').addEventListener('click', () => {
+    if (!activePlace) return;
+    if (triageData[activePlace.id]) delete triageData[activePlace.id].needsReview;
+    saveState();
+    document.getElementById('needs-review-banner').classList.add('hidden');
+    applyFiltersAndRender();
+});
+
 // Fixed Update Engine Trigger
 document.getElementById('save-coords-btn').addEventListener('click', () => {
     if (!activePlace) return;
@@ -1263,6 +1357,7 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
         // Mirror the triage panel logic: prefer address over name when available
         const hasAddress = place.address && place.address.trim().length > 2 && place.address.trim() !== place.name.trim();
         const query = hasAddress ? `${place.name} ${place.address.trim()}` : place.name;
+        const placeFolder = triageData[place.id]?.folder;
         geocodePlace(query, (result) => {
             done++;
             btn.textContent = `⏳ ${done}/${unpinned.length}`;
@@ -1270,8 +1365,13 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                 const idx = allPlaces.findIndex(p => p.id === place.id);
                 // Only write if the place still has no coordinates (don't overwrite manual fixes)
                 if (idx !== -1 && allPlaces[idx].lat === 0 && allPlaces[idx].lng === 0) {
-                    allPlaces[idx].lat = parseFloat(result.lat);
-                    allPlaces[idx].lng = parseFloat(result.lon);
+                    const rLat = parseFloat(result.lat);
+                    const rLng = parseFloat(result.lon);
+                    allPlaces[idx].lat = rLat;
+                    allPlaces[idx].lng = rLng;
+                    if (isFarFromFolder(placeFolder, place.id, rLat, rLng)) {
+                        triageData[place.id].needsReview = true;
+                    }
                 }
             }
             // Save every 10 results so progress survives a reload
@@ -1281,9 +1381,9 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                 applyFiltersAndRender();
                 btn.disabled = false;
                 btn.textContent = '📍 Fix All';
-                showToast(`Geocoded ${unpinned.length} places`);
+                showImportToast(`Geocoded ${unpinned.length} places`);
             }
-        });
+        }, placeFolder);
     });
 });
 
@@ -1291,6 +1391,78 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
 document.getElementById('filter-category').addEventListener('change', applyFiltersAndRender);
 document.getElementById('filter-status').addEventListener('change', applyFiltersAndRender);
 document.getElementById('close-triage').addEventListener('click', closeTriage);
+
+const EMOJI_PICKER_CHOICES = [
+    '📌','⭐','❤️','🏠','🏨','🏛️','🏰','⛪','🕌','🗽',
+    '🍽️','☕','🍷','🍕','🛍️','🎭','🎢','🎡','🎨','🎶',
+    '🏖️','🏞️','⛰️','🌋','🌳','🌊','🚤','🏊','🥾','🚲',
+    '📷','🎡','🛒','🚗','✈️','🚆','⛺','🌆','🏟️','🎓',
+];
+
+function closeEmojiPicker() {
+    document.querySelector('.emoji-picker-popover')?.remove();
+    document.querySelector('.emoji-picker-backdrop')?.remove();
+    document.removeEventListener('mousedown', closeEmojiPicker);
+}
+
+function openEmojiPicker(anchorEl, currentEmoji, onSelect) {
+    closeEmojiPicker();
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'emoji-picker-backdrop';
+    backdrop.addEventListener('mousedown', closeEmojiPicker);
+    document.body.appendChild(backdrop);
+
+    const popover = document.createElement('div');
+    popover.className = 'emoji-picker-popover';
+
+    const grid = document.createElement('div');
+    grid.className = 'emoji-picker-grid';
+    EMOJI_PICKER_CHOICES.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.className = 'emoji-picker-option';
+        btn.type = 'button';
+        btn.textContent = emoji;
+        btn.title = emoji === currentEmoji ? 'Current' : '';
+        btn.addEventListener('click', () => {
+            onSelect(emoji);
+            closeEmojiPicker();
+        });
+        grid.appendChild(btn);
+    });
+    popover.appendChild(grid);
+
+    const customRow = document.createElement('div');
+    customRow.className = 'emoji-picker-custom-row';
+    customRow.innerHTML = `<input type="text" maxlength="4" placeholder="Custom" value="${currentEmoji || ''}"/>
+        <button type="button">Use</button>`;
+    const customInput = customRow.querySelector('input');
+    customRow.querySelector('button').addEventListener('click', () => {
+        const val = customInput.value.trim();
+        if (val) onSelect(val);
+        closeEmojiPicker();
+    });
+    popover.appendChild(customRow);
+
+    document.body.appendChild(popover);
+
+    const rect = anchorEl.getBoundingClientRect();
+    const popRect = popover.getBoundingClientRect();
+    let top = rect.bottom + window.scrollY + 4;
+    let left = rect.left + window.scrollX;
+    if (left + popRect.width > window.innerWidth - 8) {
+        left = window.innerWidth - popRect.width - 8;
+    }
+    if (top + popRect.height > window.innerHeight + window.scrollY - 8) {
+        top = rect.top + window.scrollY - popRect.height - 4;
+    }
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+
+    setTimeout(() => document.addEventListener('mousedown', (e) => {
+        if (!popover.contains(e.target) && e.target !== anchorEl) closeEmojiPicker();
+    }, { once: true }), 0);
+}
 
 function renderCustomCategoryList() {
     const container = document.getElementById('custom-categories-list');
@@ -1302,11 +1474,23 @@ function renderCustomCategoryList() {
         customCategories.forEach((cc, idx) => {
             const row = document.createElement('div');
             row.className = 'custom-cat-row';
-            row.innerHTML = `<span>${cc.emoji} ${cc.name}</span>
+            row.innerHTML = `<span style="display:flex;align-items:center;gap:0.4rem;">
+                    <button class="custom-cat-emoji emoji-pick-btn" data-idx="${idx}" title="Change icon" style="width:30px;height:28px;font-size:1rem;">${cc.emoji}</button>
+                    <span>${cc.name}</span>
+                </span>
                 <span style="display:flex;gap:0.15rem;">
                     <button class="custom-cat-rename" data-idx="${idx}" title="Rename" style="background:none;border:none;cursor:pointer;">✏️</button>
                     <button class="custom-cat-delete" data-idx="${idx}" title="Delete">🗑️</button>
                 </span>`;
+            row.querySelector('.custom-cat-emoji').addEventListener('click', (e) => {
+                openEmojiPicker(e.currentTarget, cc.emoji, (emoji) => {
+                    customCategories[idx] = { ...customCategories[idx], emoji };
+                    saveState();
+                    populateDropdowns();
+                    renderCustomCategoryList();
+                    applyFiltersAndRender();
+                });
+            });
             row.querySelector('.custom-cat-rename').addEventListener('click', () => {
                 const newName = prompt(`Rename category "${cc.name}" to:`, cc.name);
                 if (!newName || !newName.trim() || newName.trim() === cc.name) return;
@@ -1315,9 +1499,8 @@ function renderCustomCategoryList() {
                     categoryConfig[trimmed]) {
                     alert('A category with that name already exists.'); return;
                 }
-                const newEmoji = prompt('Emoji for this category:', cc.emoji) || cc.emoji;
                 const oldName = cc.name;
-                customCategories[idx] = { name: trimmed, emoji: newEmoji.trim() || cc.emoji };
+                customCategories[idx] = { ...customCategories[idx], name: trimmed };
                 Object.keys(triageData).forEach(id => {
                     if (triageData[id].category === oldName) triageData[id].category = trimmed;
                 });
@@ -1343,23 +1526,31 @@ function renderCustomCategoryList() {
     }
 
     // Add new row
+    let newCatEmoji = '📌';
     const addRow = document.createElement('div');
     addRow.style.cssText = 'display:flex;gap:0.4rem;margin-top:0.4rem;';
     addRow.innerHTML = `
-        <input id="new-cat-emoji" placeholder="😀" style="width:44px;padding:0.3rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);text-align:center;" maxlength="2"/>
+        <button id="new-cat-emoji" class="emoji-pick-btn" type="button" title="Choose icon">${newCatEmoji}</button>
         <input id="new-cat-name" placeholder="Category name" style="flex:1;padding:0.3rem 0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--bg-main);color:var(--text-main);"/>
         <button id="new-cat-save" style="padding:0.3rem 0.6rem;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;">Add</button>
     `;
     container.appendChild(addRow);
 
+    const newCatEmojiBtn = document.getElementById('new-cat-emoji');
+    newCatEmojiBtn.addEventListener('click', (e) => {
+        openEmojiPicker(e.currentTarget, newCatEmoji, (emoji) => {
+            newCatEmoji = emoji;
+            newCatEmojiBtn.textContent = emoji;
+        });
+    });
+
     document.getElementById('new-cat-save').addEventListener('click', () => {
         const name = document.getElementById('new-cat-name').value.trim();
-        const emoji = document.getElementById('new-cat-emoji').value.trim() || '📌';
         if (!name) return;
         if (customCategories.some(c => c.name.toLowerCase() === name.toLowerCase())) {
             alert('That category already exists.'); return;
         }
-        customCategories.push({ name, emoji });
+        customCategories.push({ name, emoji: newCatEmoji });
         saveState();
         populateDropdowns();
         document.getElementById('triage-category').value = name;
@@ -1596,6 +1787,18 @@ foldersToggle && foldersToggle.addEventListener('click', (e) => {
     foldersCollapsed = !foldersCollapsed;
     foldersBody.classList.toggle('collapsed', foldersCollapsed);
     foldersChevron.classList.toggle('collapsed', foldersCollapsed);
+});
+
+// Saved trips collapsible toggle
+const savedTripsToggle = document.getElementById('saved-trips-toggle');
+const savedTripsBody = document.getElementById('saved-trips-body');
+const savedTripsChevron = document.getElementById('saved-trips-chevron');
+let savedTripsCollapsed = false;
+
+savedTripsToggle && savedTripsToggle.addEventListener('click', () => {
+    savedTripsCollapsed = !savedTripsCollapsed;
+    savedTripsBody.classList.toggle('collapsed', savedTripsCollapsed);
+    savedTripsChevron.classList.toggle('collapsed', savedTripsCollapsed);
 });
 
 
@@ -2181,6 +2384,118 @@ function gmapsDirectionsUrl(stops) {
     return `https://www.google.com/maps/dir/${path}`;
 }
 
+// ── Trip persistence ──────────────────────────────────────────────────────
+
+function saveTrips() {
+    localStorage.setItem('mapfolio_trips', JSON.stringify(savedTrips));
+}
+
+function tripDaysToIds(days) {
+    return days.map(day => day.map(p => p.id));
+}
+
+// Resolve stored place IDs back to live place objects, dropping any that
+// were deleted since the trip was saved, and any days left empty as a result.
+function tripDaysFromIds(idDays) {
+    return idDays
+        .map(day => day.map(id => allPlaces.find(p => p.id === id)).filter(Boolean))
+        .filter(day => day.length > 0);
+}
+
+function persistActiveTrip() {
+    if (tripState.active && tripState.days.length) {
+        localStorage.setItem('mapfolio_active_trip', JSON.stringify({
+            label: tripState.label,
+            activeDay: tripState.activeDay,
+            days: tripDaysToIds(tripState.days)
+        }));
+    } else {
+        localStorage.removeItem('mapfolio_active_trip');
+    }
+}
+
+function renderSavedTripsList() {
+    const section = document.getElementById('saved-trips-section');
+    const listEl = document.getElementById('saved-trips-list');
+    if (!section || !listEl) return;
+
+    section.classList.toggle('hidden', savedTrips.length === 0);
+    listEl.innerHTML = '';
+
+    savedTrips.forEach((trip) => {
+        const dayCount = trip.days.length;
+        const stopCount = trip.days.reduce((s, d) => s + d.length, 0);
+
+        const li = document.createElement('li');
+        li.className = 'folder-item';
+        li.style.cursor = 'pointer';
+        li.innerHTML = `
+            <span class="folder-name-text">
+                <span class="folder-icon"><i class="ti ti-map-pin" aria-hidden="true"></i></span>
+                <span class="folder-name-label">${trip.name} <strong style="opacity: 0.7; font-size: 0.85em;">(${dayCount}d · ${stopCount} stops)</strong></span>
+            </span>
+            <div class="folder-actions" style="display:flex; gap:0.25rem;">
+                <button class="delete-trip-btn" style="background:none; border:none; cursor:pointer;">🗑️</button>
+            </div>
+        `;
+
+        li.addEventListener('click', () => loadSavedTrip(trip.id));
+        li.querySelector('.delete-trip-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!confirm(`Delete saved trip "${trip.name}"?`)) return;
+            savedTrips = savedTrips.filter(t => t.id !== trip.id);
+            saveTrips();
+            renderSavedTripsList();
+        });
+
+        listEl.appendChild(li);
+    });
+}
+
+function loadSavedTrip(tripId) {
+    const trip = savedTrips.find(t => t.id === tripId);
+    if (!trip) return;
+
+    const days = tripDaysFromIds(trip.days);
+    if (!days.length) {
+        showImportToast('⚠️ None of these places exist anymore.');
+        return;
+    }
+
+    tripState.days = days;
+    tripState.active = true;
+    tripState.activeDay = 0;
+    tripState.label = trip.name;
+
+    document.getElementById('triage-panel')?.classList.add('hidden');
+    closeDrawer?.();
+    renderTripPanel();
+    renderTripMarkers();
+    if (isMobile()) setSheetState('collapsed');
+    zoomToDay(0);
+}
+
+function restoreActiveTrip() {
+    const raw = localStorage.getItem('mapfolio_active_trip');
+    if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch (e) { localStorage.removeItem('mapfolio_active_trip'); return; }
+
+    const days = tripDaysFromIds(data.days || []);
+    if (!days.length) { localStorage.removeItem('mapfolio_active_trip'); return; }
+
+    tripState.days = days;
+    tripState.active = true;
+    tripState.activeDay = Math.min(data.activeDay || 0, days.length - 1);
+    tripState.label = data.label || 'Trip';
+
+    document.getElementById('triage-panel')?.classList.add('hidden');
+    renderTripPanel();
+    renderTripMarkers();
+    if (isMobile()) setSheetState('collapsed');
+    zoomToDay(tripState.activeDay);
+}
+
 // ── Trip modal ──────────────────────────────────────────────────────────────
 
 const tripModal = document.getElementById('trip-modal');
@@ -2364,11 +2679,28 @@ function exitTrip() {
     tripState.days = [];
     if (tripLayer) tripLayer.clearLayers();
     document.getElementById('trip-panel').classList.add('hidden');
+    persistActiveTrip();
     applyFiltersAndRender();
     fitMapToBounds();
 }
 
 document.getElementById('trip-exit-btn')?.addEventListener('click', exitTrip);
+
+document.getElementById('trip-save-btn')?.addEventListener('click', () => {
+    if (!tripState.active || !tripState.days.length) return;
+    const name = prompt('Name this trip:', tripState.label);
+    if (!name || !name.trim()) return;
+
+    savedTrips.push({
+        id: `trip-${Date.now()}`,
+        name: name.trim(),
+        days: tripDaysToIds(tripState.days),
+        createdAt: Date.now()
+    });
+    saveTrips();
+    renderSavedTripsList();
+    showImportToast(`✅ Saved "${name.trim()}"`);
+});
 
 let tripLayer = null;
 
@@ -2463,4 +2795,5 @@ function renderTripPanel() {
     body.appendChild(list);
 
     panel.classList.remove('hidden');
+    persistActiveTrip();
 }

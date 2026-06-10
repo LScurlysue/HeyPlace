@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -206,19 +207,29 @@
 
             <section class="trip-section section-block">
                 <button id="trip-planner-btn" class="trip-planner-btn">
-                    <span class="trip-btn-icon">🗂️</span>
+                    <span class="trip-btn-icon"><i class="ti ti-route" aria-hidden="true"></i></span>
                     <span class="trip-btn-text">
                         <span class="trip-btn-title">Trip planner</span>
                         <span class="trip-btn-hint">Turn a folder into a day-by-day itinerary</span>
                     </span>
                 </button>
                 <button id="stats-btn" class="trip-planner-btn">
-                    <span class="trip-btn-icon">📊</span>
+                    <span class="trip-btn-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></span>
                     <span class="trip-btn-text">
                         <span class="trip-btn-title">My stats</span>
                         <span class="trip-btn-hint">Countries, categories and travel progress</span>
                     </span>
                 </button>
+            </section>
+
+            <section id="saved-trips-section" class="saved-trips-section section-block hidden">
+                <div class="folders-toggle" id="saved-trips-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
+                    <h3 style="margin:0;">Saved trips</h3>
+                    <span class="folders-chevron" id="saved-trips-chevron">▾</span>
+                </div>
+                <div id="saved-trips-body">
+                    <ul id="saved-trips-list" class="saved-trips-list" style="list-style:none; padding:0; margin:0;"></ul>
+                </div>
             </section>
 
           <section class="folders-section section-block">
@@ -270,7 +281,10 @@
                         <h3 id="trip-panel-title">Your trip</h3>
                         <span id="trip-panel-subtitle" class="trip-panel-subtitle"></span>
                     </div>
-                    <button id="trip-exit-btn" class="close-btn" title="Exit trip mode">&times;</button>
+                    <div class="trip-panel-actions">
+                        <button id="trip-save-btn" class="trip-save-btn" title="Save this trip">💾 Save</button>
+                        <button id="trip-exit-btn" class="trip-exit-btn" title="Exit trip mode">&times;</button>
+                    </div>
                 </div>
                 <div id="trip-day-tabs" class="trip-day-tabs"></div>
                 <div id="trip-day-body" class="trip-day-body"></div>
@@ -283,6 +297,11 @@
                 
                 <div class="gmaps-link-container">
                     <a id="triage-url" href="#" target="_blank" class="triage-link">🌐 View on Google Maps →</a>
+                </div>
+
+                <div id="needs-review-banner" class="needs-review-banner hidden">
+                    <span>⚠️ This pin's location looks far from your other places in this folder — double-check it.</span>
+                    <button id="dismiss-review-btn" type="button" class="needs-review-dismiss">Looks correct</button>
                 </div>
 
                 <!-- ── AFFILIATE BOOK IT BUTTON ── -->
