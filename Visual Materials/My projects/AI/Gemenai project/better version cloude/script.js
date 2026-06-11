@@ -54,8 +54,8 @@ function textHasWord(text, word) {
 // Auto-category keyword detection
 const CATEGORY_RULES = [
         { cat: 'Hotel',               words: ['hotel','inn','hostel','auberge','b&b','bed and breakfast','lodge','motel','guesthouse','pension','resort','riad'] },
-        { cat: 'Restaurant',          words: ['restaurant','brasserie','bistro','pizzeria','trattoria','sushi','steakhouse','tavern','eatery','diner','grill','cantina','bodega','kebab','burger','noodle','ramen','barbeque','bbq','creperie','crêperie','winery','brewery'] },
-        { cat: 'Café / Bar',          words: ['café','cafe','coffee','tea room','tearoom','patisserie','pâtisserie','bakery','boulangerie','bar','pub','tavern','cocktail','lounge','wine bar','brasserie café','kiosk'] },
+        { cat: 'Restaurant',          words: ['restaurant','restaurante','ristorante','brasserie','bistro','pizzeria','trattoria','sushi','steakhouse','tavern','eatery','diner','grill','cantina','bodega','kebab','burger','noodle','ramen','barbeque','bbq','creperie','crêperie','winery','brewery','lunch','lunchroom'] },
+        { cat: 'Café / Bar',          words: ['café','cafe','coffee','tea room','tearoom','patisserie','pâtisserie','bakery','boulangerie','bar','pub','tavern','cocktail','lounge','wine bar','brasserie café','kiosk','brunch','breakfast'] },
         { cat: 'Museum / Gallery',    words: ['museum','musée','gallery','galerie','exhibition','art center','moma','louvre','tate','guggenheim','kunsthalle'] },
         { cat: 'Monument / Landmark', words: ['castle','château','palace','cathedral','church','basilica','abbey','chapel','mosque','temple','synagogue','monument','memorial','statue','tower','fort','ruins','archaeological','heritage'] },
         { cat: 'Activity',            words: ['hiking','kayak','surf','dive','climb','zipline','tour','walk','cycle','bike','ski','snowboard','escape room','cooking class','workshop','boat','sailing'] },
@@ -69,6 +69,14 @@ const CATEGORY_RULES = [
         { cat: 'Parking / Fuel',      words: ['parking','garage','petrol','fuel','gas station','station service'] },
         { cat: 'City / Region',       words: ['city','town','village','district','neighbourhood','quarter','arrondissement','region'] },
 ];
+
+// True if a string looks like a street address (e.g. "22 Rue Antoine Meyer, 2153 Luxembourg")
+// rather than a place name — starts with a house number or contains a postal code.
+function looksLikeAddress(str) {
+    if (!str) return false;
+    const s = str.trim();
+    return /^\d+[\s,]/.test(s) || /\b\d{4,6}\b/.test(s);
+}
 
 function detectCategory(name, address) {
     const text = (name + ' ' + (address || '')).toLowerCase();
@@ -272,6 +280,7 @@ function initMap() {
         fitMapToBounds();
     } else {
         updateEmptyState();
+        renderRecentlyAdded();
     }
 
     renderSavedTripsList();
@@ -397,7 +406,11 @@ Array.from(placemarks).forEach((pm, i) => {
     }
 
     const descriptionEl = pm.getElementsByTagName("description")[0];
-    const address = descriptionEl ? descriptionEl.textContent.trim() : '';
+    let address = descriptionEl ? descriptionEl.textContent.trim() : '';
+
+    // Some exports only give us an address as the "name" (no separate
+    // address field) — mirror it into the address field too.
+    if (!address && looksLikeAddress(name)) address = name;
 
     const placeId = `kmz-${contextName}-${i}-${Date.now()}`;
 
@@ -635,8 +648,12 @@ function processCSV(text, filenameContext) {
         }
 
         const name = cols[nameIdx];
-        const address = addrIdx >= 0 ? cols[addrIdx] : '';
+        let address = addrIdx >= 0 ? cols[addrIdx] : '';
         const url = urlIdx >= 0 ? cols[urlIdx] : '#';
+
+        // Some exports only give us an address as the "name" (no separate
+        // address column) — mirror it into the address field too.
+        if (!address && looksLikeAddress(name)) address = name;
 
         const isDuplicate = allPlaces.some(p =>
             p.name.toLowerCase().trim() === name.toLowerCase().trim() &&
@@ -716,17 +733,22 @@ function processGeocodedJSON(data, folderName) {
         const lng = parseFloat(item.lng || item.coordinates?.lng || 0);
         const placeId = item.id || `json-${folderName}-${i}-${Date.now()}`;
 
+        // Some exports only give us an address as the "name" (no separate
+        // address field) — mirror it into the address field too.
+        let address = item.address || item.notes || '';
+        if (!address && looksLikeAddress(name)) address = name;
+
         allPlaces.push({
             id: placeId,
             name,
-            address: item.address || item.notes || '',
+            address,
             url,
             lat: isNaN(lat) ? 0 : lat,
             lng: isNaN(lng) ? 0 : lng
         });
 
         triageData[placeId] = {
-            category: detectCategory(name, item.address || ''),
+            category: detectCategory(name, address),
             status: item.status || 'Unsorted',
             folder: folderName
         };
@@ -801,9 +823,11 @@ function renderFoldersList() {
         li.innerHTML = `
             <span class="folder-name-text">
                 <span class="folder-icon"><i class="ti ti-folder" aria-hidden="true"></i></span>
-                <span class="folder-name-label">${folder} <strong style="opacity: 0.7; font-size: 0.85em;">(${count})</strong></span>
+                <span class="folder-name-label" title="${folder}">${folder}</span>
+                <strong class="folder-name-count" style="opacity: 0.7; font-size: 0.85em; flex-shrink: 0;">(${count})</strong>
             </span>
             <div class="folder-actions" style="display:flex; gap:0.25rem;">
+                <button class="bulk-edit-folder-btn" data-folder="${folder}" title="Edit all places in this folder" style="background:none; border:none; cursor:pointer;">🏷️</button>
                 <button class="rename-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">✏️</button>
                 <button class="delete-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">🗑️</button>
             </div>
@@ -826,6 +850,11 @@ function renderFoldersList() {
                 applyFiltersAndRender();
                 populateDropdowns();
             }
+        });
+
+        li.querySelector('.bulk-edit-folder-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openBulkEditModal(folder, count);
         });
 
         li.querySelector('.delete-folder-btn').addEventListener('click', (e) => {
@@ -917,6 +946,7 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
 
 function applyFiltersAndRender() {
     renderFoldersList();
+    renderRecentlyAdded();
     tagCountries();
     scheduleOsmChecks();
     populateCountryFilter();
@@ -949,6 +979,59 @@ function applyFiltersAndRender() {
             ? `📍 ${total.toLocaleString()} places`
             : `📍 Showing ${shown.toLocaleString()} of ${total.toLocaleString()} places`;
     }
+}
+
+const RECENT_ADDED_LIMIT = 5;
+
+function formatRelativeDate(timestamp) {
+    if (!timestamp) return '';
+    const diffMs = Date.now() - timestamp;
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffDays <= 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+    return new Date(timestamp).toLocaleDateString();
+}
+
+function renderRecentlyAdded() {
+    const section = document.getElementById('recent-added-section');
+    const list = document.getElementById('recent-added-list');
+    if (!section || !list) return;
+
+    const recent = [...allPlaces]
+        .filter(p => p.dateAdded)
+        .sort((a, b) => b.dateAdded - a.dateAdded)
+        .slice(0, RECENT_ADDED_LIMIT);
+
+    if (recent.length === 0) {
+        section.classList.add('hidden');
+        return;
+    }
+    section.classList.remove('hidden');
+    list.innerHTML = '';
+
+    recent.forEach(place => {
+        const data = triageData[place.id] || { category: 'Other' };
+        const catConf = getCatConf(data.category);
+        const li = document.createElement('li');
+        li.className = 'recent-item';
+        li.innerHTML = `
+            <span class="recent-item-icon">${catConf.emoji}</span>
+            <div class="recent-item-text">
+                <div class="recent-item-name">${place.name}</div>
+                <div class="recent-item-date">${formatRelativeDate(place.dateAdded)}</div>
+            </div>
+        `;
+        li.addEventListener('click', () => {
+            closeDrawer();
+            openTriagePanel(place);
+            if (place.lat !== 0 && place.lng !== 0) {
+                map.flyTo([place.lat, place.lng], 14, { duration: 1.2 });
+            }
+        });
+        list.appendChild(li);
+    });
 }
 
 function renderUnpinned() {
@@ -1207,23 +1290,33 @@ async function runGeocode(address) {
     const stripped = address.normalize('NFD').replace(/[̀-ͯ]/g, '');
     const queries = [...new Set([address, placeName, stripped].filter(Boolean))];
 
-    // Try Nominatim (address/name)
+    // Try Nominatim (address/name). A failure here (network hiccup, rate
+    // limiting, non-JSON response) shouldn't stop the Photon fallback below —
+    // only re-throw if the request was deliberately cancelled.
     async function tryNominatim(q) {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' }, signal });
-        const data = await res.json();
-        if (data && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`;
+            const res = await fetch(url, { headers: { 'Accept-Language': 'en' }, signal });
+            const data = await res.json();
+            if (data && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        } catch (e) {
+            if (e.name === 'AbortError') throw e;
+        }
         return null;
     }
 
     // Try Photon (Komoot) — better POI coverage, no API key
     async function tryPhoton(q) {
-        const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`;
-        const res = await fetch(url, { signal });
-        const data = await res.json();
-        if (data && data.features && data.features.length > 0) {
-            const [lon, lat] = data.features[0].geometry.coordinates;
-            return { lat, lon };
+        try {
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`;
+            const res = await fetch(url, { signal });
+            const data = await res.json();
+            if (data && data.features && data.features.length > 0) {
+                const [lon, lat] = data.features[0].geometry.coordinates;
+                return { lat, lon };
+            }
+        } catch (e) {
+            if (e.name === 'AbortError') throw e;
         }
         return null;
     }
@@ -1623,7 +1716,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
                 map.flyTo([lat, lng], 15, { duration: 1.2 });
                 // Create new place and open triage panel
                 const newId = `manual-${Date.now()}`;
-                const newPlace = { id: newId, name, address: addr, url: '#', lat, lng, osmChecked: true };
+                const newPlace = { id: newId, name, address: addr, url: '#', lat, lng, osmChecked: true, dateAdded: Date.now() };
                 allPlaces.push(newPlace);
                 // Prefer OSM's own type (city, restaurant, museum…) over keyword guessing
                 const osmCat = osmTypeToCategory(result.class, result.type);
@@ -1637,7 +1730,10 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
         });
     }
 
-    if (localMatches.length === 0 && nominatimResults.length === 0) {
+    // Always offer to add the user's own typed name as a new place — Nominatim
+    // results are fuzzy matches and may not be the exact place the user means.
+    const exactLocalMatch = localMatches.some(p => p.name.toLowerCase().trim() === query.toLowerCase().trim());
+    if (!exactLocalMatch) {
         const item = document.createElement('div');
         item.className = 'dropdown-item';
         item.innerHTML = `<span class="item-icon">➕</span><div class="item-text"><div class="item-name">Add "${query}" as new place</div><div class="item-addr">We'll try to find the location automatically</div></div>`;
@@ -1647,7 +1743,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
             searchInput.value = '';
             closeDrawer();
             const newId = `manual-${Date.now()}`;
-            const newPlace = { id: newId, name, address: name, url: '#', lat: 0, lng: 0 };
+            const newPlace = { id: newId, name, address: name, url: '#', lat: 0, lng: 0, dateAdded: Date.now() };
             allPlaces.push(newPlace);
             triageData[newId] = { category: detectCategory(name, ''), status: 'Unsorted', folder: 'Uncategorized' };
             saveState();
@@ -1787,6 +1883,18 @@ foldersToggle && foldersToggle.addEventListener('click', (e) => {
     foldersCollapsed = !foldersCollapsed;
     foldersBody.classList.toggle('collapsed', foldersCollapsed);
     foldersChevron.classList.toggle('collapsed', foldersCollapsed);
+});
+
+// Recently added collapsible toggle
+const recentAddedToggle = document.getElementById('recent-added-toggle');
+const recentAddedBody = document.getElementById('recent-added-body');
+const recentAddedChevron = document.getElementById('recent-added-chevron');
+let recentAddedCollapsed = false;
+
+recentAddedToggle && recentAddedToggle.addEventListener('click', () => {
+    recentAddedCollapsed = !recentAddedCollapsed;
+    recentAddedBody.classList.toggle('collapsed', recentAddedCollapsed);
+    recentAddedChevron.classList.toggle('collapsed', recentAddedCollapsed);
 });
 
 // Saved trips collapsible toggle
@@ -2273,6 +2381,70 @@ document.getElementById('stats-btn')?.addEventListener('click', () => {
 });
 document.getElementById('stats-modal-close')?.addEventListener('click', () => statsModal.classList.add('hidden'));
 document.getElementById('stats-modal-backdrop')?.addEventListener('click', () => statsModal.classList.add('hidden'));
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BULK EDIT — apply a category and/or status to every place in a folder at once
+// ═══════════════════════════════════════════════════════════════════════════
+const bulkEditModal = document.getElementById('bulk-edit-modal');
+const bulkEditCategorySelect = document.getElementById('bulk-edit-category');
+let bulkEditTargetFolder = null;
+
+function openBulkEditModal(folder, count) {
+    bulkEditTargetFolder = folder;
+    document.getElementById('bulk-edit-folder-desc').textContent =
+        `This will update all ${count} place${count === 1 ? '' : 's'} in "${folder}". Leave a field as "Don't change" to skip it.`;
+
+    bulkEditCategorySelect.innerHTML = '<option value="__nochange">Don\'t change</option><option value="__autodetect">🤖 Auto-detect from each place\'s name</option>';
+    Object.keys(categoryConfig).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = `${categoryConfig[name].emoji} ${name}`;
+        bulkEditCategorySelect.appendChild(opt);
+    });
+    customCategories.forEach(cc => {
+        const opt = document.createElement('option');
+        opt.value = cc.name;
+        opt.textContent = `${cc.emoji} ${cc.name}`;
+        bulkEditCategorySelect.appendChild(opt);
+    });
+
+    document.getElementById('bulk-edit-status').value = '__nochange';
+    bulkEditModal.classList.remove('hidden');
+}
+
+document.getElementById('bulk-edit-modal-close')?.addEventListener('click', () => bulkEditModal.classList.add('hidden'));
+document.getElementById('bulk-edit-modal-backdrop')?.addEventListener('click', () => bulkEditModal.classList.add('hidden'));
+
+document.getElementById('bulk-edit-apply-btn')?.addEventListener('click', () => {
+    const newCategory = bulkEditCategorySelect.value;
+    const newStatus = document.getElementById('bulk-edit-status').value;
+
+    if (newCategory === '__nochange' && newStatus === '__nochange') {
+        bulkEditModal.classList.add('hidden');
+        return;
+    }
+
+    let updated = 0;
+    allPlaces.forEach(place => {
+        const data = triageData[place.id];
+        const placeFolder = (data && data.folder) ? data.folder : 'Uncategorized';
+        if (placeFolder !== bulkEditTargetFolder) return;
+        if (!triageData[place.id]) triageData[place.id] = { category: 'Other', status: 'Unsorted', folder: placeFolder };
+        if (newCategory === '__autodetect') {
+            triageData[place.id].category = detectCategory(place.name, place.address);
+        } else if (newCategory !== '__nochange') {
+            triageData[place.id].category = newCategory;
+        }
+        if (newStatus !== '__nochange') triageData[place.id].status = newStatus;
+        updated++;
+    });
+
+    saveState();
+    applyFiltersAndRender();
+    renderFoldersList();
+    bulkEditModal.classList.add('hidden');
+    alert(`Updated ${updated} place${updated === 1 ? '' : 's'} in "${bulkEditTargetFolder}".`);
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TRIP PLANNER — cluster a folder's places into N days by proximity,

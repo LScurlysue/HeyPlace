@@ -47,7 +47,8 @@
                     <div class="help-section-icon">➕</div>
                     <div>
                         <h3>Add a place manually</h3>
-                        <p>Tap <strong>Menu → Search</strong>, type any place name or address. Results appear below — tap <strong>"Add new place"</strong> to pin it on your map.</p>
+                        <p>Tap <strong>Menu → Search</strong>, type any place name or address. Results appear below — tap <strong>"Add as new place"</strong> to pin it on your map under the name you typed, even if the suggestions don't match exactly.</p>
+                        <p>If the place can't be found automatically, you can still add it and enter its coordinates by hand.</p>
                     </div>
                 </div>
 
@@ -60,9 +61,18 @@
                             <li>Open <strong>Google Takeout</strong> — search it in Google or go to <em>takeout.google.com</em></li>
                             <li>Click <strong>"Deselect all"</strong>, then scroll down and tick only <strong>"Maps (your places)"</strong></li>
                             <li>Click <strong>Next step → Create export</strong>. Google emails you a download link (usually within a few minutes).</li>
-                            <li>Download the ZIP file → open it → find the <strong>Takeout / Maps</strong> folder → you'll see files ending in <strong>.json</strong> or <strong>.kml / .kmz</strong></li>
+                            <li>Download the ZIP file → open it → find the <strong>Takeout / Maps</strong> folder → you'll see files ending in <strong>.json</strong>, <strong>.csv</strong> or <strong>.kml / .kmz</strong></li>
                             <li>Back in MapFolio, tap <strong>Menu → Import Places</strong> and select those files. Done! 🎉</li>
                         </ol>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📊</div>
+                    <div>
+                        <h3>Importing CSV / spreadsheet files</h3>
+                        <p>MapFolio also accepts <strong>.csv</strong> files — including the "Saved places" lists from Google Takeout, or your own spreadsheet exported as CSV.</p>
+                        <p>For best results, include columns for <strong>name/title</strong>, and either <strong>latitude/longitude</strong> or an <strong>address</strong> (MapFolio will look up coordinates automatically). A <strong>URL</strong> column is also recognized if present.</p>
                     </div>
                 </div>
 
@@ -71,6 +81,23 @@
                     <div>
                         <h3>Folders &amp; categories</h3>
                         <p>Imported files become <strong>folders</strong> automatically. Tap a folder to filter the map to just those pins. Each pin can also have a <strong>category</strong> (Restaurant, Museum…) and a <strong>status</strong> (Want to Go, Loved It…).</p>
+                        <p>Don't see a category that fits (e.g. "friend's home")? Use the <strong>➕ Add custom category</strong> option in settings to create your own, with its own emoji icon.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🎨</div>
+                    <div>
+                        <h3>Status colours</h3>
+                        <p>Each pin's colour shows its status: <strong>blue</strong> = Want to Go, <strong>amber</strong> = Been There, <strong>green</strong> = Loved It, <strong>brown</strong> = Meh, <strong>red</strong> = Skip It, <strong>grey</strong> = Unsorted, and <strong>gold</strong> = Favourite.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🕐</div>
+                    <div>
+                        <h3>Recently added</h3>
+                        <p>Places you add manually (not imported ones) show up in the <strong>Recently added</strong> section on the sidebar, so you can quickly find your latest additions.</p>
                     </div>
                 </div>
 
@@ -79,6 +106,22 @@
                     <div>
                         <h3>Edit a place</h3>
                         <p>Tap any pin on the map to open its details. Change the name, category, status or folder, then tap <strong>Save</strong>.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🗂️</div>
+                    <div>
+                        <h3>Trip planner &amp; stats</h3>
+                        <p>Use <strong>Trip planner</strong> to turn a folder of places into a day-by-day itinerary by walking or driving. Check <strong>My stats</strong> for an overview of countries, categories and your travel progress.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🌓</div>
+                    <div>
+                        <h3>Light &amp; dark theme</h3>
+                        <p>Tap the moon/sun icon in the top bar to switch between light and dark mode. Your choice is saved for next time.</p>
                     </div>
                 </div>
 
@@ -131,6 +174,42 @@
                 <button class="help-modal-close" id="stats-modal-close">✕</button>
             </div>
             <div class="help-modal-body" id="stats-body"></div>
+        </div>
+    </div>
+
+    <!-- Bulk edit folder modal -->
+    <div id="bulk-edit-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="bulk-edit-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>🏷️ Edit all places in folder</h2>
+                <button class="help-modal-close" id="bulk-edit-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <p id="bulk-edit-folder-desc" style="margin-top:0;"></p>
+                <div class="form-group">
+                    <label>Set category for all</label>
+                    <select id="bulk-edit-category">
+                        <option value="__nochange">Don't change</option>
+                        <option value="__autodetect">🤖 Auto-detect from each place's name</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label>Set status for all</label>
+                    <select id="bulk-edit-status">
+                        <option value="__nochange">Don't change</option>
+                        <option value="Unsorted">⚪ Unsorted</option>
+                        <option value="Favourite">⭐ Favourite</option>
+                        <option value="Want to Go">🔵 Want to Go</option>
+                        <option value="Been There">🟡 Been There</option>
+                        <option value="Loved It">🟢 Loved It</option>
+                        <option value="Meh">🟤 Meh</option>
+                        <option value="Skip It">🔴 Skip It</option>
+                    </select>
+                </div>
+                <button id="bulk-edit-apply-btn" class="action-btn save-modifications-btn" style="margin-top:1rem;width:100%;">Apply to all places</button>
+            </div>
         </div>
     </div>
 
@@ -220,6 +299,16 @@
                         <span class="trip-btn-hint">Countries, categories and travel progress</span>
                     </span>
                 </button>
+            </section>
+
+            <section id="recent-added-section" class="recent-added-section section-block hidden">
+                <div class="folders-toggle" id="recent-added-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
+                    <h3 style="margin:0;">Recently added</h3>
+                    <span class="folders-chevron" id="recent-added-chevron">▾</span>
+                </div>
+                <div id="recent-added-body">
+                    <ul id="recent-added-list" class="recent-added-list" style="list-style:none; padding:0; margin:0;"></ul>
+                </div>
             </section>
 
             <section id="saved-trips-section" class="saved-trips-section section-block hidden">
