@@ -24,6 +24,7 @@ const categoryConfig = {
     'Museum / Gallery':    { emoji: '🏛️', cssClass: 'cat-Museum' },
     'Monument / Landmark': { emoji: '🗽', cssClass: 'cat-Monument' },
     'Activity':            { emoji: '🧗', cssClass: 'cat-Activity' },
+    'Playground':          { emoji: '🛝', cssClass: 'cat-Playground' },
     'Beach':               { emoji: '🏖️', cssClass: 'cat-Beach' },
     'Nature':              { emoji: '🌿', cssClass: 'cat-Nature' },
     'Viewpoint':           { emoji: '🌄', cssClass: 'cat-Viewpoint' },
@@ -59,6 +60,7 @@ const CATEGORY_RULES = [
         { cat: 'Museum / Gallery',    words: ['museum','musée','gallery','galerie','exhibition','art center','moma','louvre','tate','guggenheim','kunsthalle'] },
         { cat: 'Monument / Landmark', words: ['castle','château','palace','cathedral','church','basilica','abbey','chapel','mosque','temple','synagogue','monument','memorial','statue','tower','fort','ruins','archaeological','heritage'] },
         { cat: 'Activity',            words: ['hiking','kayak','surf','dive','climb','zipline','tour','walk','cycle','bike','ski','snowboard','escape room','cooking class','workshop','boat','sailing'] },
+        { cat: 'Playground',          words: ['playground','play area','jungle gym','splash pad','play park','kids park','spielplatz','aire de jeux'] },
         { cat: 'Beach',               words: ['beach','plage','strand','cove','bay','costa','praia'] },
         { cat: 'Nature',              words: ['park','garden','forest','lake','waterfall','canyon','valley','reserve','national park','botanical','jardin','nature'] },
         { cat: 'Viewpoint',           words: ['viewpoint','belvedere','mirador','panorama','lookout','observation','terrace','rooftop view'] },
@@ -2381,6 +2383,7 @@ function osmTypeToCategory(cls, type) {
         return 'Nature';
     }
     if (cls === 'leisure') {
+        if (type === 'playground') return 'Playground';
         if (['park','garden','nature_reserve'].includes(type)) return 'Nature';
         if (['spa','sauna'].includes(type)) return 'Spa / Wellness';
         if (['sports_centre','stadium','water_park','amusement_arcade'].includes(type)) return 'Entertainment';
