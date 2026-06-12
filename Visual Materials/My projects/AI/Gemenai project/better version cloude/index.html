@@ -27,6 +27,7 @@
             <span class="topbar-tagline">Organize your saved places</span>
         </div>
         <div class="topbar-actions">
+            <button id="settings-btn" class="topbar-icon-btn" title="Backup & Restore"><i class="ti ti-settings" aria-hidden="true"></i></button>
             <button id="help-btn" class="topbar-icon-btn" title="How to use MapFolio">?</button>
             <button id="theme-toggle-mobile" class="theme-toggle-btn" title="Toggle Theme">🌓</button>
         </div>
@@ -164,6 +165,42 @@
         </div>
     </div>
 
+    <!-- Settings modal (Backup & Restore) -->
+    <div id="settings-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="settings-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>⚙️ Backup & Restore</h2>
+                <button class="help-modal-close" id="settings-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <p class="backup-hint">Your data lives only on this device. Save a backup file before switching phones or browsers — and load it again on the other device to bring everything across.</p>
+                <div class="backup-buttons">
+                    <button id="backup-btn" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-download" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">Download backup</span>
+                            <span class="trip-btn-hint">Save all your places, folders & trips as a file</span>
+                        </span>
+                    </button>
+                    <label for="restore-upload" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-upload" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">Restore from backup</span>
+                            <span class="trip-btn-hint">Merges with what's already on this device — your other places & edits are kept</span>
+                        </span>
+                    </label>
+                    <input id="restore-upload" type="file" accept=".json" style="display: none;" />
+                    <label class="backup-replace-option">
+                        <input type="checkbox" id="restore-replace-checkbox" />
+                        Replace everything instead (for setting up a brand new device)
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Stats modal -->
     <div id="stats-modal" class="help-modal hidden">
         <div class="help-modal-backdrop" id="stats-modal-backdrop"></div>
@@ -254,8 +291,11 @@
             </section>
 
             <section class="filters-section section-block">
-                <h3>Filters</h3>
-                <div class="filters-container">
+                <div class="folders-toggle" id="filters-toggle" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                    <h3 style="margin:0;flex:1;">Filters</h3>
+                    <span class="folders-chevron collapsed" id="filters-chevron">▾</span>
+                </div>
+                <div class="filters-container collapsed" id="filters-body">
                     <div class="filter-group">
                         <label for="filter-category">Category</label>
                         <select id="filter-category">
@@ -285,20 +325,26 @@
             </section>
 
             <section class="trip-section section-block">
-                <button id="trip-planner-btn" class="trip-planner-btn">
-                    <span class="trip-btn-icon"><i class="ti ti-route" aria-hidden="true"></i></span>
-                    <span class="trip-btn-text">
-                        <span class="trip-btn-title">Trip planner</span>
-                        <span class="trip-btn-hint">Turn a folder into a day-by-day itinerary</span>
-                    </span>
-                </button>
-                <button id="stats-btn" class="trip-planner-btn">
-                    <span class="trip-btn-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></span>
-                    <span class="trip-btn-text">
-                        <span class="trip-btn-title">My stats</span>
-                        <span class="trip-btn-hint">Countries, categories and travel progress</span>
-                    </span>
-                </button>
+                <div class="folders-toggle" id="tools-toggle" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                    <h3 style="margin:0;flex:1;">Tools</h3>
+                    <span class="folders-chevron collapsed" id="tools-chevron">▾</span>
+                </div>
+                <div class="tools-body collapsed" id="tools-body">
+                    <button id="trip-planner-btn" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-route" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">Trip planner</span>
+                            <span class="trip-btn-hint">Turn a folder into a day-by-day itinerary</span>
+                        </span>
+                    </button>
+                    <button id="stats-btn" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">My stats</span>
+                            <span class="trip-btn-hint">Countries, categories and travel progress</span>
+                        </span>
+                    </button>
+                </div>
             </section>
 
             <section id="recent-added-section" class="recent-added-section section-block hidden">

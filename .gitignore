@@ -1,0 +1,16 @@
+# This git repo is rooted at the home folder, but it should only ever
+# contain the MapFolio project. Ignore everything else by default so that
+# `git add -A` / `git add .` from the home directory can never accidentally
+# stage personal files (Documents, Pictures, AppData, etc).
+/*
+
+# Allow the path down to the MapFolio project folder
+!/Visual Materials/
+/Visual Materials/*
+!/Visual Materials/My projects/
+/Visual Materials/My projects/*
+!/Visual Materials/My projects/AI/
+/Visual Materials/My projects/AI/*
+!/Visual Materials/My projects/AI/Gemenai project/
+/Visual Materials/My projects/AI/Gemenai project/*
+!/Visual Materials/My projects/AI/Gemenai project/better version cloude/

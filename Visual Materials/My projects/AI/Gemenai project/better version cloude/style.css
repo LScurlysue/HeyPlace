@@ -1007,7 +1007,9 @@ body {
 }
 #folders-body,
 #saved-trips-body,
-#recent-added-body {
+#recent-added-body,
+.filters-container,
+.tools-body {
     overflow: hidden;
     transition: max-height 0.28s ease, opacity 0.2s ease;
     max-height: 600px;
@@ -1015,10 +1017,31 @@ body {
 }
 #folders-body.collapsed,
 #saved-trips-body.collapsed,
-#recent-added-body.collapsed {
+#recent-added-body.collapsed,
+.filters-container.collapsed,
+.tools-body.collapsed {
     max-height: 0;
     opacity: 0;
     pointer-events: none;
+}
+
+.tools-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* On desktop, keep Filters & Tools expanded and hide the fold toggle —
+   the extra height only matters on small mobile screens. */
+@media (min-width: 768px) {
+    #filters-toggle, #tools-toggle { cursor: default; }
+    #filters-chevron, #tools-chevron { display: none; }
+    .filters-container.collapsed,
+    .tools-body.collapsed {
+        max-height: 600px;
+        opacity: 1;
+        pointer-events: auto;
+    }
 }
 
 /* ─── Drawer overlay ──────────────────────────────────────────────────── */
@@ -1400,6 +1423,26 @@ body {
 .trip-btn-text { display: flex; flex-direction: column; gap: 0.1rem; }
 .trip-btn-title { font-weight: 700; font-size: 0.9rem; }
 .trip-btn-hint { font-size: 0.72rem; color: var(--text-muted); }
+
+.backup-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: -0.15rem 0 0.1rem;
+}
+.backup-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.backup-replace-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 0.25rem;
+}
 
 .trip-modal-hint {
     margin-top: 0.75rem;

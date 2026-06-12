@@ -114,12 +114,158 @@ function detectCategory(name, address) {
     localStorage.setItem('mapfolio_catfix_v1', 'true');
 })();
 
+// Stamp the time a place / triage entry was last edited by the user, so
+// backups from different devices can be merged by keeping the newer copy.
+function touchPlace(place) {
+    place.lastModified = Date.now();
+}
+function touchTriage(id) {
+    if (triageData[id]) triageData[id].lastModified = Date.now();
+}
+
 function saveState() {
     localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
     localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
     localStorage.setItem('mapfolio_folders', JSON.stringify(customFolders));
     localStorage.setItem('mapfolio_custom_categories', JSON.stringify(customCategories));
 }
+
+// ── Backup & Restore ──────────────────────────────────────────────────────
+const BACKUP_KEYS = ['mapfolio_places', 'mapfolio_triage', 'mapfolio_folders', 'mapfolio_custom_categories', 'mapfolio_trips', 'mapfolio_active_trip'];
+
+function downloadBackup() {
+    const data = { mapfolioBackup: true, version: 1, exportedAt: new Date().toISOString(), data: {} };
+    BACKUP_KEYS.forEach(key => {
+        const raw = localStorage.getItem(key);
+        if (raw !== null) data.data[key] = JSON.parse(raw);
+    });
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = `mapfolio-backup-${date}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Merge an incoming backup into the data already on this device.
+// New items (unseen ids/names) are added; items that exist on both sides
+// keep whichever copy was edited more recently (by lastModified, falling
+// back to dateAdded/createdAt for items that predate that field).
+function mergeBackupData(incoming) {
+    let addedPlaces = 0, updatedPlaces = 0;
+
+    const placesById = new Map(allPlaces.map(p => [p.id, p]));
+    (incoming.mapfolio_places || []).forEach(remote => {
+        const local = placesById.get(remote.id);
+        if (!local) {
+            allPlaces.push(remote);
+            addedPlaces++;
+        } else {
+            const remoteTime = remote.lastModified || remote.dateAdded || 0;
+            const localTime = local.lastModified || local.dateAdded || 0;
+            if (remoteTime > localTime) {
+                Object.assign(local, remote);
+                updatedPlaces++;
+            }
+        }
+    });
+
+    const incomingTriage = incoming.mapfolio_triage || {};
+    Object.keys(incomingTriage).forEach(id => {
+        const remote = incomingTriage[id];
+        const local = triageData[id];
+        if (!local) {
+            triageData[id] = remote;
+        } else {
+            const remoteTime = remote.lastModified || 0;
+            const localTime = local.lastModified || 0;
+            if (remoteTime > localTime) triageData[id] = remote;
+        }
+    });
+
+    (incoming.mapfolio_folders || []).forEach(folder => {
+        if (!customFolders.includes(folder)) customFolders.push(folder);
+    });
+
+    (incoming.mapfolio_custom_categories || []).forEach(cat => {
+        if (!customCategories.some(c => c.name === cat.name)) customCategories.push(cat);
+    });
+
+    let addedTrips = 0, updatedTrips = 0;
+    (incoming.mapfolio_trips || []).forEach(remote => {
+        const local = savedTrips.find(t => t.id === remote.id);
+        if (!local) {
+            savedTrips.push(remote);
+            addedTrips++;
+        } else {
+            const remoteTime = remote.lastModified || remote.createdAt || 0;
+            const localTime = local.lastModified || local.createdAt || 0;
+            if (remoteTime > localTime) {
+                Object.assign(local, remote);
+                updatedTrips++;
+            }
+        }
+    });
+
+    saveState();
+    saveTrips();
+
+    return { addedPlaces, updatedPlaces, addedTrips, updatedTrips };
+}
+
+function restoreBackup(file, replaceAll) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        let parsed;
+        try {
+            parsed = JSON.parse(e.target.result);
+        } catch (err) {
+            alert('That file is not valid JSON.');
+            return;
+        }
+        if (!parsed || !parsed.mapfolioBackup || !parsed.data) {
+            alert('That file does not look like a MapFolio backup.');
+            return;
+        }
+
+        if (replaceAll) {
+            if (!confirm('This will REPLACE all places, folders, categories and trips currently on this device with the contents of the backup file. Continue?')) {
+                return;
+            }
+            BACKUP_KEYS.forEach(key => {
+                if (parsed.data[key] !== undefined) {
+                    localStorage.setItem(key, JSON.stringify(parsed.data[key]));
+                } else {
+                    localStorage.removeItem(key);
+                }
+            });
+            alert('Backup restored. The page will now reload.');
+            location.reload();
+            return;
+        }
+
+        const result = mergeBackupData(parsed.data);
+        applyFiltersAndRender();
+        populateDropdowns();
+        renderFoldersList();
+        renderSavedTripsList();
+        alert(`Merge complete: ${result.addedPlaces} new place(s) added, ${result.updatedPlaces} updated, ${result.addedTrips} new trip(s) added, ${result.updatedTrips} updated.`);
+    };
+    reader.readAsText(file);
+}
+
+document.getElementById('backup-btn')?.addEventListener('click', downloadBackup);
+document.getElementById('restore-upload')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const replaceAll = document.getElementById('restore-replace-checkbox')?.checked;
+    if (file) restoreBackup(file, replaceAll);
+    e.target.value = '';
+});
 
 // ── Empty state & Demo data ───────────────────────────────────────────────
 
@@ -433,7 +579,8 @@ Array.from(placemarks).forEach((pm, i) => {
         address: address || '',
         url: '#',
         lat: finalLat,
-        lng: finalLng
+        lng: finalLng,
+        dateAdded: Date.now()
     });
     importedCount++;
 
@@ -683,12 +830,12 @@ function processCSV(text, filenameContext) {
 
         // If we have coordinates now, push immediately
         if (!isNaN(lat) && !isNaN(lng) && lat !== 0) {
-            allPlaces.push({ id: placeId, name, address, url, lat, lng });
+            allPlaces.push({ id: placeId, name, address, url, lat, lng, dateAdded: Date.now() });
             return;
         }
 
         // No coordinates — add as unpinned placeholder, then geocode via queue
-        allPlaces.push({ id: placeId, name, address, url, lat: 0, lng: 0 });
+        allPlaces.push({ id: placeId, name, address, url, lat: 0, lng: 0, dateAdded: Date.now() });
 
         geocodePlace(name, (result) => {
             if (result) {
@@ -744,7 +891,8 @@ function processGeocodedJSON(data, folderName) {
             address,
             url,
             lat: isNaN(lat) ? 0 : lat,
-            lng: isNaN(lng) ? 0 : lng
+            lng: isNaN(lng) ? 0 : lng,
+            dateAdded: Date.now()
         });
 
         triageData[placeId] = {
@@ -843,7 +991,10 @@ function renderFoldersList() {
                 const oldName = customFolders[index];
                 customFolders[index] = newName.trim();
                 for (let id in triageData) {
-                    if (triageData[id].folder === oldName) triageData[id].folder = newName.trim();
+                    if (triageData[id].folder === oldName) {
+                        triageData[id].folder = newName.trim();
+                        touchTriage(id);
+                    }
                 }
                 if (activeFolderFilter === oldName) activeFolderFilter = newName.trim();
                 saveState();
@@ -1370,7 +1521,8 @@ function updateTriageData() {
     triageData[activePlace.id] = {
         category: document.getElementById('triage-category').value,
         status: document.getElementById('triage-status').value,
-        folder: document.getElementById('triage-folder').value
+        folder: document.getElementById('triage-folder').value,
+        lastModified: Date.now()
     };
     saveState();
 }
@@ -1396,6 +1548,7 @@ document.getElementById('save-coords-btn').addEventListener('click', () => {
         allPlaces[matchedIdx].lng = inputtedLng;
         allPlaces[matchedIdx].name = document.getElementById('triage-title').value;
         allPlaces[matchedIdx].address = document.getElementById('triage-address').value;
+        touchPlace(allPlaces[matchedIdx]);
     }
 
     updateTriageData();
@@ -1595,7 +1748,10 @@ function renderCustomCategoryList() {
                 const oldName = cc.name;
                 customCategories[idx] = { ...customCategories[idx], name: trimmed };
                 Object.keys(triageData).forEach(id => {
-                    if (triageData[id].category === oldName) triageData[id].category = trimmed;
+                    if (triageData[id].category === oldName) {
+                        triageData[id].category = trimmed;
+                        touchTriage(id);
+                    }
                 });
                 saveState();
                 populateDropdowns();
@@ -1606,7 +1762,10 @@ function renderCustomCategoryList() {
                 if (!confirm(`Delete category "${cc.name}"? Places using it will be set to Other.`)) return;
                 // Reset places using this category
                 Object.keys(triageData).forEach(id => {
-                    if (triageData[id].category === cc.name) triageData[id].category = 'Other';
+                    if (triageData[id].category === cc.name) {
+                        triageData[id].category = 'Other';
+                        touchTriage(id);
+                    }
                 });
                 customCategories.splice(idx, 1);
                 saveState();
@@ -1720,7 +1879,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
                 allPlaces.push(newPlace);
                 // Prefer OSM's own type (city, restaurant, museum…) over keyword guessing
                 const osmCat = osmTypeToCategory(result.class, result.type);
-                triageData[newId] = { category: osmCat || detectCategory(name, addr), status: 'Unsorted', folder: 'Uncategorized' };
+                triageData[newId] = { category: osmCat || detectCategory(name, addr), status: 'Unsorted', folder: 'Uncategorized', lastModified: Date.now() };
                 saveState();
                 populateDropdowns();
                 applyFiltersAndRender();
@@ -1745,7 +1904,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
             const newId = `manual-${Date.now()}`;
             const newPlace = { id: newId, name, address: name, url: '#', lat: 0, lng: 0, dateAdded: Date.now() };
             allPlaces.push(newPlace);
-            triageData[newId] = { category: detectCategory(name, ''), status: 'Unsorted', folder: 'Uncategorized' };
+            triageData[newId] = { category: detectCategory(name, ''), status: 'Unsorted', folder: 'Uncategorized', lastModified: Date.now() };
             saveState();
             populateDropdowns();
             applyFiltersAndRender();
@@ -1869,6 +2028,39 @@ const helpBackdrop = document.getElementById('help-modal-backdrop');
 helpBtn && helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
 helpClose && helpClose.addEventListener('click', () => helpModal.classList.add('hidden'));
 helpBackdrop && helpBackdrop.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+// Settings modal (Backup & Restore)
+const settingsModal = document.getElementById('settings-modal');
+const settingsClose = document.getElementById('settings-modal-close');
+const settingsBackdrop = document.getElementById('settings-modal-backdrop');
+
+document.getElementById('settings-btn')?.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+settingsClose && settingsClose.addEventListener('click', () => settingsModal.classList.add('hidden'));
+settingsBackdrop && settingsBackdrop.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+// Filters collapsible toggle (folded by default on mobile)
+const filtersToggle = document.getElementById('filters-toggle');
+const filtersBody = document.getElementById('filters-body');
+const filtersChevron = document.getElementById('filters-chevron');
+let filtersCollapsed = true;
+
+filtersToggle && filtersToggle.addEventListener('click', () => {
+    filtersCollapsed = !filtersCollapsed;
+    filtersBody.classList.toggle('collapsed', filtersCollapsed);
+    filtersChevron.classList.toggle('collapsed', filtersCollapsed);
+});
+
+// Tools (Trip planner / Stats) collapsible toggle (folded by default on mobile)
+const toolsToggle = document.getElementById('tools-toggle');
+const toolsBody = document.getElementById('tools-body');
+const toolsChevron = document.getElementById('tools-chevron');
+let toolsCollapsed = true;
+
+toolsToggle && toolsToggle.addEventListener('click', () => {
+    toolsCollapsed = !toolsCollapsed;
+    toolsBody.classList.toggle('collapsed', toolsCollapsed);
+    toolsChevron.classList.toggle('collapsed', toolsCollapsed);
+});
 
 // Folders collapsible toggle
 const foldersToggle = document.getElementById('folders-toggle');
@@ -2436,6 +2628,7 @@ document.getElementById('bulk-edit-apply-btn')?.addEventListener('click', () => 
             triageData[place.id].category = newCategory;
         }
         if (newStatus !== '__nochange') triageData[place.id].status = newStatus;
+        touchTriage(place.id);
         updated++;
     });
 
@@ -2867,7 +3060,8 @@ document.getElementById('trip-save-btn')?.addEventListener('click', () => {
         id: `trip-${Date.now()}`,
         name: name.trim(),
         days: tripDaysToIds(tripState.days),
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        lastModified: Date.now()
     });
     saveTrips();
     renderSavedTripsList();
