@@ -111,6 +111,16 @@
                 </div>
 
                 <div class="help-section">
+                    <div class="help-section-icon">⚠️</div>
+                    <div>
+                        <h3>Unpinned places</h3>
+                        <p>If MapFolio couldn't find a location for an imported place, it shows up under <strong>⚠️ Unpinned places</strong> in the sidebar.</p>
+                        <p>Tap the <strong>📍 Fix All</strong> button to look them all up automatically — it changes to <strong>⏳ progress</strong> (e.g. "3/12") while it works through the list, about one place per second, so larger lists can take a minute or two.</p>
+                        <p>For anything it can't find, tap the ✏️ next to that place to enter its coordinates by hand.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
                     <div class="help-section-icon">🗂️</div>
                     <div>
                         <h3>Trip planner &amp; stats</h3>
@@ -386,8 +396,9 @@
                 <div id="unpinned-header" class="unpinned-header">
                     <span>⚠️ Unpinned places</span>
                     <span id="unpinned-count" class="unpinned-count">0</span>
-                    <button id="geocode-all-btn" title="Auto-geocode all unpinned places" style="margin-left:auto;padding:2px 8px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">📍 Fix All</button>
+                    <button id="geocode-all-btn" title="Look up coordinates for all places below automatically (about 1 per second)" style="margin-left:auto;padding:2px 8px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">📍 Fix All</button>
                 </div>
+                <p class="unpinned-hint">These places have no location yet. Tap <strong>📍 Fix All</strong> above to look them up automatically — it'll switch to <strong>⏳</strong> while it works and may take a minute. Or tap <strong>✏️</strong> next to a place below to enter coordinates by hand.</p>
                 <ul id="unpinned-list" class="unpinned-list hidden"></ul>
             </div>
 

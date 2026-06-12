@@ -422,6 +422,15 @@ body {
     font-size: 0.75rem;
     font-weight: 700;
 }
+.unpinned-hint {
+    margin: 0;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--text-muted);
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+}
 .unpinned-list {
     list-style: none;
     max-height: 180px;
