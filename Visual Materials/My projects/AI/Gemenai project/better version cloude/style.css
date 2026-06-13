@@ -464,6 +464,23 @@ body {
     font-size: 0.9rem;
 }
 
+.triage-notes-input {
+    width: 100%;
+    padding: 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    outline: none;
+    font-size: 0.85rem;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.triage-notes-input:focus {
+    border-color: var(--primary);
+}
+
 /* Search bar: icon and field on one line, modern pill style */
 .search-input-wrapper {
     position: relative;

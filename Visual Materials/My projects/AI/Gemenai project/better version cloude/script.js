@@ -1114,7 +1114,7 @@ function applyFiltersAndRender() {
         const matchCategory = catFilter === 'All' || data.category === catFilter;
         const matchStatus = statFilter === 'All' || data.status === statFilter;
         const matchCountry = countryFilter === 'All' || place.country === countryFilter;
-        const matchSearch = searchTerm === '' || place.name.toLowerCase().includes(searchTerm) || (place.address || '').toLowerCase().includes(searchTerm);
+        const matchSearch = searchTerm === '' || place.name.toLowerCase().includes(searchTerm) || (place.address || '').toLowerCase().includes(searchTerm) || (data.notes || '').toLowerCase().includes(searchTerm);
         const matchFolder = activeFolderFilter === null || (data.folder || 'Uncategorized') === activeFolderFilter;
         return matchCategory && matchStatus && matchCountry && matchSearch && matchFolder;
     });
@@ -1172,7 +1172,7 @@ function renderRecentlyAdded() {
         li.innerHTML = `
             <span class="recent-item-icon">${catConf.emoji}</span>
             <div class="recent-item-text">
-                <div class="recent-item-name">${place.name}</div>
+                <div class="recent-item-name">${place.name}${data.notes ? ' 📝' : ''}</div>
                 <div class="recent-item-date">${formatRelativeDate(place.dateAdded)}</div>
             </div>
         `;
@@ -1370,6 +1370,7 @@ function openTriagePanel(place) {
     document.getElementById('triage-category').value = data.category;
     document.getElementById('triage-status').value = data.status;
     document.getElementById('triage-folder').value = data.folder || 'Uncategorized';
+    document.getElementById('triage-notes').value = data.notes || '';
 
     document.getElementById('triage-panel').classList.remove('hidden');
     document.getElementById('delete-confirm').classList.add('hidden');
@@ -1524,6 +1525,7 @@ function updateTriageData() {
         category: document.getElementById('triage-category').value,
         status: document.getElementById('triage-status').value,
         folder: document.getElementById('triage-folder').value,
+        notes: document.getElementById('triage-notes').value.trim(),
         lastModified: Date.now()
     };
     saveState();
@@ -1931,7 +1933,8 @@ searchInput.addEventListener('input', () => {
     // Local matches
     const localMatches = allPlaces.filter(p =>
         p.name.toLowerCase().includes(query.toLowerCase()) ||
-        (p.address || '').toLowerCase().includes(query.toLowerCase())
+        (p.address || '').toLowerCase().includes(query.toLowerCase()) ||
+        ((triageData[p.id]?.notes || '').toLowerCase().includes(query.toLowerCase()))
     );
 
     searchDebounceTimer = setTimeout(() => {
@@ -3153,7 +3156,7 @@ function renderTripPanel() {
         li.innerHTML = `
             <span class="trip-stop-num" style="--day-color:${color}">${i + 1}</span>
             <div class="trip-stop-info">
-                <div class="trip-stop-name">${catConf.emoji} ${place.name}</div>
+                <div class="trip-stop-name">${catConf.emoji} ${place.name}${data.notes ? ' 📝' : ''}</div>
                 <div class="trip-stop-addr">${place.address || ''}</div>
             </div>`;
         li.addEventListener('click', () => {
