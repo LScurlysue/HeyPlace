@@ -359,7 +359,7 @@
 
             <section id="recent-added-section" class="recent-added-section section-block hidden">
                 <div class="folders-toggle" id="recent-added-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
-                    <h3 style="margin:0;">Recently added</h3>
+                    <h3 style="margin:0;flex:1;">Recently added</h3>
                     <span class="folders-chevron" id="recent-added-chevron">▾</span>
                 </div>
                 <div id="recent-added-body">
@@ -369,7 +369,7 @@
 
             <section id="saved-trips-section" class="saved-trips-section section-block hidden">
                 <div class="folders-toggle" id="saved-trips-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
-                    <h3 style="margin:0;">Saved trips</h3>
+                    <h3 style="margin:0;flex:1;">Saved trips</h3>
                     <span class="folders-chevron" id="saved-trips-chevron">▾</span>
                 </div>
                 <div id="saved-trips-body">
@@ -381,9 +381,9 @@
     <div class="section-header-row">
         <div class="folders-toggle" id="folders-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
             <h3 style="margin:0;">Folders <span class="active-folder-label" id="active-folder-label"></span></h3>
-            <span class="folders-chevron" id="folders-chevron">▾</span>
+            <button id="add-folder-btn" class="icon-action-btn" title="Create New Folder">➕</button>
+            <span class="folders-chevron" id="folders-chevron" style="margin-left:auto;">▾</span>
         </div>
-        <button id="add-folder-btn" class="icon-action-btn" title="Create New Folder">➕</button>
     </div>
     <div id="folders-body">
         <div class="folder-search-wrapper" style="margin: 0.5rem 0; width: 100%;">
