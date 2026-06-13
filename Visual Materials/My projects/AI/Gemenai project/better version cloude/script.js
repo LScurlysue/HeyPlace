@@ -261,6 +261,46 @@ function restoreBackup(file, replaceAll) {
     reader.readAsText(file);
 }
 
+// Export a single folder (places + triage + folder name + used categories) as a
+// shareable file. The recipient imports it via the existing "Restore backup"
+// merge flow, since it uses the same mapfolioBackup format.
+function downloadFolderExport(folderName) {
+    const places = allPlaces.filter(p => (triageData[p.id]?.folder || 'Uncategorized') === folderName);
+    if (places.length === 0) {
+        alert('This folder has no places to share yet.');
+        return;
+    }
+
+    const triage = {};
+    places.forEach(p => { if (triageData[p.id]) triage[p.id] = triageData[p.id]; });
+
+    const usedCategoryNames = new Set(places.map(p => triageData[p.id]?.category).filter(Boolean));
+    const categories = customCategories.filter(c => usedCategoryNames.has(c.name));
+
+    const data = {
+        mapfolioBackup: true,
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: {
+            mapfolio_places: places,
+            mapfolio_triage: triage,
+            mapfolio_folders: [folderName],
+            mapfolio_custom_categories: categories
+        }
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = folderName.replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-+|-+$/g, '');
+    a.href = url;
+    a.download = `mapfolio-${safeName || 'folder'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 document.getElementById('backup-btn')?.addEventListener('click', downloadBackup);
 document.getElementById('restore-upload')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -977,6 +1017,7 @@ function renderFoldersList() {
                 <strong class="folder-name-count" style="opacity: 0.7; font-size: 0.85em; flex-shrink: 0;">(${count})</strong>
             </span>
             <div class="folder-actions" style="display:flex; gap:0.25rem;">
+                <button class="share-folder-btn" data-folder="${folder}" title="Download this folder as a file to share" style="background:none; border:none; cursor:pointer;">📤</button>
                 <button class="bulk-edit-folder-btn" data-folder="${folder}" title="Edit all places in this folder" style="background:none; border:none; cursor:pointer;">🏷️</button>
                 <button class="rename-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">✏️</button>
                 <button class="delete-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">🗑️</button>
@@ -1003,6 +1044,11 @@ function renderFoldersList() {
                 applyFiltersAndRender();
                 populateDropdowns();
             }
+        });
+
+        li.querySelector('.share-folder-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            downloadFolderExport(folder);
         });
 
         li.querySelector('.bulk-edit-folder-btn').addEventListener('click', (e) => {
