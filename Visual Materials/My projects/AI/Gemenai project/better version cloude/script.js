@@ -1016,19 +1016,31 @@ function renderFoldersList() {
                 <span class="folder-name-label" title="${folder}">${folder}</span>
                 <strong class="folder-name-count" style="opacity: 0.7; font-size: 0.85em; flex-shrink: 0;">(${count})</strong>
             </span>
-            <div class="folder-actions" style="display:flex; gap:0.25rem;">
-                <button class="share-folder-btn" data-folder="${folder}" title="Download this folder as a file to share" style="background:none; border:none; cursor:pointer;">📤</button>
-                <button class="bulk-edit-folder-btn" data-folder="${folder}" title="Edit all places in this folder" style="background:none; border:none; cursor:pointer;">🏷️</button>
-                <button class="rename-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">✏️</button>
-                <button class="delete-folder-btn" data-index="${index}" style="background:none; border:none; cursor:pointer;">🗑️</button>
+            <div class="folder-actions">
+                <button class="folder-menu-btn" title="Folder actions">⋯</button>
+                <div class="folder-menu hidden">
+                    <button class="share-folder-btn" data-folder="${folder}">📤 Share folder</button>
+                    <button class="bulk-edit-folder-btn" data-folder="${folder}">🏷️ Edit all places</button>
+                    <button class="rename-folder-btn" data-index="${index}">✏️ Rename</button>
+                    <button class="delete-folder-btn" data-index="${index}">🗑️ Delete</button>
+                </div>
             </div>
         `;
         if (activeFolderFilter === folder) {
             li.classList.add('active');
         }
 
+        const folderMenu = li.querySelector('.folder-menu');
+        li.querySelector('.folder-menu-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wasHidden = folderMenu.classList.contains('hidden');
+            document.querySelectorAll('.folder-menu').forEach(m => m.classList.add('hidden'));
+            folderMenu.classList.toggle('hidden', !wasHidden);
+        });
+
         li.querySelector('.rename-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
+            folderMenu.classList.add('hidden');
             const newName = prompt("Enter a new name for this folder:", folder);
             if (newName && newName.trim()) {
                 const oldName = customFolders[index];
@@ -1048,16 +1060,19 @@ function renderFoldersList() {
 
         li.querySelector('.share-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
+            folderMenu.classList.add('hidden');
             downloadFolderExport(folder);
         });
 
         li.querySelector('.bulk-edit-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
+            folderMenu.classList.add('hidden');
             openBulkEditModal(folder, count);
         });
 
         li.querySelector('.delete-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
+            folderMenu.classList.add('hidden');
             if (confirm(`Delete folder "${folder}"?`)) {
                 if (activeFolderFilter === folder) activeFolderFilter = null;
                 customFolders.splice(index, 1);
@@ -1096,6 +1111,11 @@ li.addEventListener('click', () => {
         listEl.appendChild(toggle);
     }
 }
+
+// Close any open folder action menu when clicking elsewhere
+document.addEventListener('click', () => {
+    document.querySelectorAll('.folder-menu').forEach(m => m.classList.add('hidden'));
+});
 
 document.getElementById('add-folder-btn').addEventListener('click', (e) => {
     e.stopPropagation();

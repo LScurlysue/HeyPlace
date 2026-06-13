@@ -204,7 +204,47 @@ body {
     color: #ffde59;
 }
 
-.folder-actions button { background: transparent; border: none; cursor: pointer; margin-left: 0.3rem; }
+.folder-actions { position: relative; }
+.folder-menu-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+}
+.folder-menu-btn:hover { background: var(--item-hover); }
+.folder-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    z-index: 50;
+    min-width: 170px;
+    overflow: hidden;
+}
+.folder-menu.hidden { display: none; }
+.folder-menu button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    white-space: nowrap;
+}
+.folder-menu button:hover { background: var(--item-hover); }
 
 .recent-added-list { display: flex; flex-direction: column; gap: 0.4rem; }
 .recent-item {
@@ -1320,11 +1360,15 @@ body {
         gap: 0.5rem;
         max-height: none;
     }
-    .folder-actions button {
-        font-size: 1.1rem;
-        padding: 0.2rem 0.3rem;
+    .folder-menu-btn {
+        font-size: 1.3rem;
+        padding: 0.2rem 0.5rem;
         min-width: 36px;
         min-height: 36px;
+    }
+    .folder-menu button {
+        padding: 0.7rem 0.9rem;
+        font-size: 0.95rem;
     }
 
     /* ── FAB ── */
