@@ -1035,7 +1035,9 @@ function renderFoldersList() {
             e.stopPropagation();
             const wasHidden = folderMenu.classList.contains('hidden');
             document.querySelectorAll('.folder-menu').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.folder-item.menu-open').forEach(el => el.classList.remove('menu-open'));
             folderMenu.classList.toggle('hidden', !wasHidden);
+            li.classList.toggle('menu-open', wasHidden);
         });
 
         li.querySelector('.rename-folder-btn').addEventListener('click', (e) => {
@@ -1115,6 +1117,7 @@ li.addEventListener('click', () => {
 // Close any open folder action menu when clicking elsewhere
 document.addEventListener('click', () => {
     document.querySelectorAll('.folder-menu').forEach(m => m.classList.add('hidden'));
+    document.querySelectorAll('.folder-item.menu-open').forEach(el => el.classList.remove('menu-open'));
 });
 
 document.getElementById('add-folder-btn').addEventListener('click', (e) => {
