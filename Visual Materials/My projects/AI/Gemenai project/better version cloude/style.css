@@ -1080,7 +1080,7 @@ body {
 .tools-body {
     overflow: hidden;
     transition: max-height 0.28s ease, opacity 0.2s ease;
-    max-height: 600px;
+    max-height: 3000px;
     opacity: 1;
 }
 #folders-body.collapsed,
