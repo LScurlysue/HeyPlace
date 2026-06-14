@@ -1034,10 +1034,21 @@ function renderFoldersList() {
         li.querySelector('.folder-menu-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             const wasHidden = folderMenu.classList.contains('hidden');
-            document.querySelectorAll('.folder-menu').forEach(m => m.classList.add('hidden'));
+            document.querySelectorAll('.folder-menu').forEach(m => { m.classList.add('hidden'); m.classList.remove('open-up'); });
             document.querySelectorAll('.folder-item.menu-open').forEach(el => el.classList.remove('menu-open'));
-            folderMenu.classList.toggle('hidden', !wasHidden);
-            li.classList.toggle('menu-open', wasHidden);
+            if (wasHidden) {
+                folderMenu.classList.remove('hidden');
+                li.classList.add('menu-open');
+                // Flip the menu above the button if it would overflow the
+                // scrollable sidebar area below (e.g. last folders, near
+                // the Unpinned places section).
+                const scrollArea = li.closest('.sidebar-scroll-body, .sidebar') || document.body;
+                const menuRect = folderMenu.getBoundingClientRect();
+                const areaRect = scrollArea.getBoundingClientRect();
+                if (menuRect.bottom > areaRect.bottom) {
+                    folderMenu.classList.add('open-up');
+                }
+            }
         });
 
         li.querySelector('.rename-folder-btn').addEventListener('click', (e) => {
