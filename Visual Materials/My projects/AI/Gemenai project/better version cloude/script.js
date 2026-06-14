@@ -972,9 +972,20 @@ function processGeocodedJSON(data, folderName) {
     showImportToast(`Imported ${importedCount} new places from JSON (${data.length - importedCount} skipped).`);
 }
 
+// Hide a folder action menu and, if it was moved to <body> for fixed
+// positioning, return it to its original spot in the folder row.
+function closeFolderMenu(menu) {
+    menu.classList.add('hidden');
+    if (menu._anchor && menu.parentElement !== menu._anchor) {
+        menu._anchor.appendChild(menu);
+    }
+}
+
 function renderFoldersList() {
     const listEl = document.getElementById('folders-list');
     if (!listEl) return;
+    // Drop any folder menus left over in <body> from before a re-render.
+    document.querySelectorAll('body > .folder-menu').forEach(m => m.remove());
     listEl.innerHTML = '';
 
     const folderSearchInput = document.getElementById('folder-search-input');
@@ -1031,29 +1042,37 @@ function renderFoldersList() {
         }
 
         const folderMenu = li.querySelector('.folder-menu');
-        li.querySelector('.folder-menu-btn').addEventListener('click', (e) => {
+        const folderMenuBtn = li.querySelector('.folder-menu-btn');
+        folderMenu._anchor = li.querySelector('.folder-actions');
+        folderMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const wasHidden = folderMenu.classList.contains('hidden');
-            document.querySelectorAll('.folder-menu').forEach(m => { m.classList.add('hidden'); m.classList.remove('open-up'); });
+            document.querySelectorAll('.folder-menu').forEach(closeFolderMenu);
             document.querySelectorAll('.folder-item.menu-open').forEach(el => el.classList.remove('menu-open'));
             if (wasHidden) {
+                // Move to <body> and position fixed relative to the button
+                // so the menu is never clipped by a scrollable/overflow
+                // ancestor (e.g. the folders list or sidebar drawer).
+                const btnRect = folderMenuBtn.getBoundingClientRect();
+                document.body.appendChild(folderMenu);
+                folderMenu.style.visibility = 'hidden';
                 folderMenu.classList.remove('hidden');
-                li.classList.add('menu-open');
-                // Flip the menu above the button if it would overflow the
-                // scrollable sidebar area below (e.g. last folders, near
-                // the Unpinned places section).
-                const scrollArea = li.closest('.sidebar-scroll-body, .sidebar') || document.body;
-                const menuRect = folderMenu.getBoundingClientRect();
-                const areaRect = scrollArea.getBoundingClientRect();
-                if (menuRect.bottom > areaRect.bottom) {
-                    folderMenu.classList.add('open-up');
+                const menuHeight = folderMenu.offsetHeight;
+                folderMenu.style.right = `${window.innerWidth - btnRect.right}px`;
+                folderMenu.style.left = 'auto';
+                if (btnRect.bottom + menuHeight > window.innerHeight) {
+                    folderMenu.style.top = `${btnRect.top - menuHeight}px`;
+                } else {
+                    folderMenu.style.top = `${btnRect.bottom + 4}px`;
                 }
+                folderMenu.style.visibility = '';
+                li.classList.add('menu-open');
             }
         });
 
         li.querySelector('.rename-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            folderMenu.classList.add('hidden');
+            closeFolderMenu(folderMenu);
             const newName = prompt("Enter a new name for this folder:", folder);
             if (newName && newName.trim()) {
                 const oldName = customFolders[index];
@@ -1073,19 +1092,19 @@ function renderFoldersList() {
 
         li.querySelector('.share-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            folderMenu.classList.add('hidden');
+            closeFolderMenu(folderMenu);
             downloadFolderExport(folder);
         });
 
         li.querySelector('.bulk-edit-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            folderMenu.classList.add('hidden');
+            closeFolderMenu(folderMenu);
             openBulkEditModal(folder, count);
         });
 
         li.querySelector('.delete-folder-btn').addEventListener('click', (e) => {
             e.stopPropagation();
-            folderMenu.classList.add('hidden');
+            closeFolderMenu(folderMenu);
             if (confirm(`Delete folder "${folder}"?`)) {
                 if (activeFolderFilter === folder) activeFolderFilter = null;
                 customFolders.splice(index, 1);
@@ -1127,7 +1146,14 @@ li.addEventListener('click', () => {
 
 // Close any open folder action menu when clicking elsewhere
 document.addEventListener('click', () => {
-    document.querySelectorAll('.folder-menu').forEach(m => m.classList.add('hidden'));
+    document.querySelectorAll('.folder-menu').forEach(closeFolderMenu);
+    document.querySelectorAll('.folder-item.menu-open').forEach(el => el.classList.remove('menu-open'));
+});
+
+// Close an open folder menu if the sidebar scrolls, since it's
+// fixed-positioned and wouldn't follow the button otherwise.
+document.querySelector('.sidebar-scroll-body')?.addEventListener('scroll', () => {
+    document.querySelectorAll('.folder-menu').forEach(closeFolderMenu);
     document.querySelectorAll('.folder-item.menu-open').forEach(el => el.classList.remove('menu-open'));
 });
 

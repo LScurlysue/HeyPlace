@@ -169,12 +169,6 @@ body {
 .folder-item.menu-open {
     z-index: 10;
 }
-/* Lift the whole folders section above sibling sections (e.g. Unpinned)
-   so an open kebab menu near the bottom isn't covered by the next section. */
-.folders-section:has(.folder-item.menu-open) {
-    position: relative;
-    z-index: 20;
-}
 .folder-item:hover {
     border-color: #ffde59;
     transform: translateY(-1px);
@@ -228,25 +222,16 @@ body {
 }
 .folder-menu-btn:hover { background: var(--item-hover); }
 .folder-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 4px;
+    position: fixed;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    z-index: 50;
+    z-index: 1000;
     min-width: 170px;
     overflow: hidden;
 }
 .folder-menu.hidden { display: none; }
-.folder-menu.open-up {
-    top: auto;
-    bottom: 100%;
-    margin-top: 0;
-    margin-bottom: 4px;
-}
 .folder-menu button {
     display: flex;
     align-items: center;
@@ -1107,13 +1092,6 @@ body {
     opacity: 0;
     pointer-events: none;
 }
-/* Let an open kebab menu escape the 600px clipping box so it isn't
-   cut off (and the section behind it doesn't show through) when the
-   last folders' menu opens near the bottom of the list. */
-#folders-body:has(.folder-item.menu-open) {
-    overflow: visible;
-}
-
 .tools-body {
     display: flex;
     flex-direction: column;
