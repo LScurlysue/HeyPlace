@@ -136,9 +136,9 @@ body {
 .upload-section.compact .import-btn {
     padding: 0.4rem 0.7rem;
     gap: 0.5rem;
-    background: var(--bg-panel);
+    background: rgba(255, 222, 89, 0.12);
     color: var(--text-main);
-    border: 1.5px solid var(--border);
+    border: 1.5px solid rgba(255, 222, 89, 0.5);
     box-shadow: none;
 }
 .upload-section.compact .import-btn:hover {
@@ -148,11 +148,15 @@ body {
 .upload-section.compact .import-btn-icon {
     width: 26px;
     height: 26px;
-    background: rgba(255, 222, 89, 0.25);
+    background: rgba(255, 222, 89, 0.35);
     color: #9a7b00;
 }
+[data-theme="dark"] .upload-section.compact .import-btn {
+    background: rgba(255, 222, 89, 0.08);
+    border-color: rgba(255, 222, 89, 0.3);
+}
 [data-theme="dark"] .upload-section.compact .import-btn-icon {
-    background: rgba(255, 222, 89, 0.15);
+    background: rgba(255, 222, 89, 0.18);
     color: #ffde59;
 }
 .upload-section.compact .import-btn-hint {
