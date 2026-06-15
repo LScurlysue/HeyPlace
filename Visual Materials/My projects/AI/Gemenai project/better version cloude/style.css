@@ -128,6 +128,37 @@ body {
     box-shadow: 0 3px 12px rgba(255, 222, 89, 0.4);
 }
 
+/* Once the user has places, shrink the Import banner — it's mainly an
+   onboarding prompt and shouldn't compete with Filters/Folders below. */
+.upload-section.compact {
+    padding: 0.5rem 1.25rem;
+}
+.upload-section.compact .import-btn {
+    padding: 0.4rem 0.7rem;
+    gap: 0.5rem;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 1.5px solid var(--border);
+    box-shadow: none;
+}
+.upload-section.compact .import-btn:hover {
+    border-color: #ffde59;
+    box-shadow: 0 4px 12px rgba(255, 222, 89, 0.25);
+}
+.upload-section.compact .import-btn-icon {
+    width: 26px;
+    height: 26px;
+    background: rgba(255, 222, 89, 0.25);
+    color: #9a7b00;
+}
+[data-theme="dark"] .upload-section.compact .import-btn-icon {
+    background: rgba(255, 222, 89, 0.15);
+    color: #ffde59;
+}
+.upload-section.compact .import-btn-hint {
+    font-size: 0.65rem;
+}
+
 .section-block {
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border);
