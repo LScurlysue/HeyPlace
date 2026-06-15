@@ -1098,19 +1098,6 @@ body {
     gap: 0.5rem;
 }
 
-/* On desktop, keep Filters & Tools expanded and hide the fold toggle —
-   the extra height only matters on small mobile screens. */
-@media (min-width: 768px) {
-    #filters-toggle, #tools-toggle { cursor: default; }
-    #filters-chevron, #tools-chevron { display: none; }
-    .filters-container.collapsed,
-    .tools-body.collapsed {
-        max-height: 600px;
-        opacity: 1;
-        pointer-events: auto;
-    }
-}
-
 /* ─── Drawer overlay ──────────────────────────────────────────────────── */
 .drawer-overlay {
     display: none;

@@ -214,7 +214,7 @@ const W = 13.33, H = 7.5;
 {
   let s = pres.addSlide();
   s.background = { color: "FFFFFF" };
-  s.addText("Questions people ask me", { x: 0.6, y: 0.5, w: 12, h: 0.8, fontSize: 32, bold: true, color: NAVY, fontFace: HEAD_FONT, margin: 0 });
+  s.addText("Questions people ask me", { x: 0.6, y: 0.4, w: 12, h: 0.7, fontSize: 30, bold: true, color: NAVY, fontFace: HEAD_FONT, margin: 0 });
 
   const qa = [
     ["“What's the value beyond just tracking been-to / want-to-go?”",
@@ -222,32 +222,73 @@ const W = 13.33, H = 7.5;
     ["“Can I import these places back into Google Maps?”",
       "Not yet — exports are MapFolio's own format today, for backup and sharing between MapFolio users. Two-way sync with Google Maps (KML export) is on the wish list."],
     ["“Is this connected to Booking.com?”",
-      "No. No bookings, no accounts, no external services of any kind. It's purely a personal map and trip-planning tool."],
+      "Not today — right now it's purely a personal map and trip-planning tool, no external services. But it's a natural future direction: affiliate links to Booking.com, TripAdvisor, etc. for the places in your collection."],
+    ["“What if a shared folder has a place I've already visited?”",
+      "Your existing status always wins — if MapFolio recognizes the place (same link or name), the imported copy is skipped so your status (e.g. \"Loved It\") isn't overwritten. It just won't show up in the new shared folder."],
   ];
 
-  let y = 1.7;
-  for (const [q, a] of qa) {
-    s.addShape(pres.shapes.RECTANGLE, { x: 0.6, y, w: 12.1, h: 1.55, fill: { color: CARD }, line: { type: "none" } });
-    s.addText(q, { x: 0.9, y: y + 0.18, w: 11.5, h: 0.5, fontSize: 16, bold: true, color: TEAL, fontFace: HEAD_FONT, margin: 0 });
-    s.addText(a, { x: 0.9, y: y + 0.68, w: 11.5, h: 0.8, fontSize: 14, color: INK, fontFace: BODY_FONT, margin: 0, lineSpacingMultiple: 1.1 });
-    y += 1.8;
+  let y = 1.3;
+  for (const [i, [q, a]] of qa.entries()) {
+    const cardH = i === qa.length - 1 ? 1.5 : 1.3;
+    s.addShape(pres.shapes.RECTANGLE, { x: 0.6, y, w: 12.1, h: cardH, fill: { color: CARD }, line: { type: "none" } });
+    s.addText(q, { x: 0.9, y: y + 0.15, w: 11.5, h: 0.45, fontSize: 15, bold: true, color: TEAL, fontFace: HEAD_FONT, margin: 0 });
+    s.addText(a, { x: 0.9, y: y + 0.6, w: 11.5, h: cardH - 0.65, fontSize: 13, color: INK, fontFace: BODY_FONT, margin: 0, lineSpacingMultiple: 1.05 });
+    y += cardH + 0.15;
   }
 }
 
-// ---------- Slide 10: Try it / closing ----------
+// ---------- Slide 10: What's next - monetization idea ----------
+{
+  let s = pres.addSlide();
+  s.background = { color: "FFFFFF" };
+  s.addText("What's next: an idea worth exploring", { x: 0.6, y: 0.5, w: 12, h: 0.8, fontSize: 32, bold: true, color: NAVY, fontFace: HEAD_FONT, margin: 0 });
+
+  s.addShape(pres.shapes.RECTANGLE, { x: 0.6, y: 1.5, w: 12.1, h: 1.35, fill: { color: CARD }, line: { type: "none" } });
+  s.addText("💡  Sell curated trip collections", { x: 0.9, y: 1.65, w: 11.5, h: 0.5, fontSize: 18, bold: true, color: TEAL, fontFace: HEAD_FONT, margin: 0 });
+  s.addText("A folder of places + a trip-planner itinerary is basically a ready-made travel guide. People already pay for “where to eat in Lisbon” PDFs and curated maps — MapFolio could let creators package and sell their own collections.",
+    { x: 0.9, y: 2.1, w: 11.5, h: 0.7, fontSize: 14, color: INK, fontFace: BODY_FONT, margin: 0, lineSpacingMultiple: 1.1 });
+
+  const items = [
+    ["🗂️", "Premium folders", "Creators (locals, frequent travellers, influencers) publish a folder as a paid “trip pack” — e.g. “3 days in Lisbon, foodie edition”."],
+    ["🧭", "Itinerary included", "Buyers get the places plus a ready-made day-by-day plan from the trip planner — not just a list of pins."],
+    ["🔁", "Built on what exists", "The export/import and trip-planner features already do most of the work — this is mainly a packaging + marketplace layer on top."],
+  ];
+
+  let x = 0.6;
+  const cw = 3.95, gx = 0.3;
+  for (const [icon, title, desc] of items) {
+    s.addShape(pres.shapes.RECTANGLE, { x, y: 3.15, w: cw, h: 3.55, fill: { color: NAVY }, line: { type: "none" } });
+    s.addText(icon, { x: x + 0.25, y: 3.35, w: 0.9, h: 0.7, fontSize: 28, margin: 0 });
+    s.addText(title, { x: x + 0.25, y: 4.05, w: cw - 0.5, h: 0.55, fontSize: 16, bold: true, color: LEMON, fontFace: HEAD_FONT, margin: 0 });
+    s.addText(desc, { x: x + 0.25, y: 4.65, w: cw - 0.5, h: 1.9, fontSize: 13, color: "E4E9EF", fontFace: BODY_FONT, margin: 0, lineSpacingMultiple: 1.15 });
+    x += cw + gx;
+  }
+
+  s.addText("Still an open question: how to keep “no account needed” for browsing while supporting payments and creator profiles for sellers.",
+    { x: 0.6, y: 6.85, w: 12.1, h: 0.5, fontSize: 13, italic: true, color: MUTED, fontFace: BODY_FONT, margin: 0 });
+}
+
+// ---------- Slide 11: Try it / closing ----------
 {
   let s = pres.addSlide();
   s.background = { color: NAVY };
 
   s.addShape(pres.shapes.OVAL, { x: -1.5, y: -1.8, w: 5, h: 5, fill: { color: TEAL, transparency: 75 }, line: { type: "none" } });
 
-  s.addText("Try it yourself", { x: 0.9, y: 1.0, w: 11, h: 1.0, fontSize: 40, bold: true, color: "FFFFFF", fontFace: HEAD_FONT, margin: 0 });
+  s.addText("Try it yourself", { x: 0.9, y: 1.0, w: 8, h: 1.0, fontSize: 40, bold: true, color: "FFFFFF", fontFace: HEAD_FONT, margin: 0 });
   s.addText([
     { text: "🔗  Open the link on your phone or laptop — no install, no sign-up", options: { breakLine: true, paraSpaceAfter: 14 } },
     { text: "📲  Add it to your home screen for one-tap access", options: { breakLine: true, paraSpaceAfter: 14 } },
     { text: "📥  Try importing a few Google Maps saved places, or just add some manually", options: { breakLine: true, paraSpaceAfter: 14 } },
     { text: "🔒  Everything stays on your device — nothing is uploaded anywhere", options: {} },
-  ], { x: 0.9, y: 2.4, w: 11, h: 3.2, fontSize: 20, color: "E4E9EF", fontFace: BODY_FONT, valign: "top", margin: 0, lineSpacingMultiple: 1.2 });
+  ], { x: 0.9, y: 2.4, w: 8, h: 3.2, fontSize: 20, color: "E4E9EF", fontFace: BODY_FONT, valign: "top", margin: 0, lineSpacingMultiple: 1.2 });
+
+  // QR code card
+  s.addShape(pres.shapes.RECTANGLE, { x: 9.6, y: 1.5, w: 3.0, h: 3.6, fill: { color: "FFFFFF" }, line: { type: "none" },
+    shadow: { type: "outer", color: "000000", blur: 8, offset: 3, angle: 135, opacity: 0.3 } });
+  s.addImage({ path: "shots/qr-code.png", x: 9.85, y: 1.75, w: 2.5, h: 2.5 });
+  s.addText("Scan to open MapFolio", { x: 9.6, y: 4.3, w: 3.0, h: 0.4, fontSize: 13, bold: true, color: NAVY, align: "center", fontFace: HEAD_FONT, margin: 0 });
+  s.addText("my-mapfolio.netlify.app", { x: 9.6, y: 4.65, w: 3.0, h: 0.35, fontSize: 11, color: MUTED, align: "center", fontFace: BODY_FONT, margin: 0 });
 
   s.addText("Thank you! Feedback, bug reports, and “what about X” ideas all very welcome.", {
     x: 0.9, y: 6.3, w: 11, h: 0.6, fontSize: 16, italic: true, color: LEMON, fontFace: BODY_FONT, margin: 0

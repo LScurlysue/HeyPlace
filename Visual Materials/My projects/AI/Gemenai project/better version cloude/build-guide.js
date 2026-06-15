@@ -155,6 +155,9 @@ const doc = new Document({
       heading("Is this connected to Booking.com or any travel booking site?", HeadingLevel.HEADING_2),
       body("No. MapFolio doesn't book anything and has no connection to any travel or accommodation service. It's just a personal map and trip-planning tool — no accounts, no bookings, no external services."),
 
+      heading("What if a shared folder has a place I've already visited?", HeadingLevel.HEADING_2),
+      body("Your existing status always wins. If MapFolio recognizes the place as one you already have (same link or same name), the incoming copy is skipped — your status (e.g. \"Loved It\") stays as it is. Note that it also won't be added to the new shared folder in this case."),
+
       heading("What if I get stuck?", HeadingLevel.HEADING_2),
       body("Tap the ? icon at the top of the app any time for a full in-app guide covering every feature in more detail."),
     ]
