@@ -2160,6 +2160,16 @@ helpBtn && helpBtn.addEventListener('click', () => helpModal.classList.remove('h
 helpClose && helpClose.addEventListener('click', () => helpModal.classList.add('hidden'));
 helpBackdrop && helpBackdrop.addEventListener('click', () => helpModal.classList.add('hidden'));
 
+// Contact modal
+const contactBtn = document.getElementById('contact-btn');
+const contactModal = document.getElementById('contact-modal');
+const contactClose = document.getElementById('contact-modal-close');
+const contactBackdrop = document.getElementById('contact-modal-backdrop');
+
+contactBtn && contactBtn.addEventListener('click', () => contactModal.classList.remove('hidden'));
+contactClose && contactClose.addEventListener('click', () => contactModal.classList.add('hidden'));
+contactBackdrop && contactBackdrop.addEventListener('click', () => contactModal.classList.add('hidden'));
+
 // Settings modal (Backup & Restore)
 const settingsModal = document.getElementById('settings-modal');
 const settingsClose = document.getElementById('settings-modal-close');
