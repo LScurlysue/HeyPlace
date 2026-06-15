@@ -1933,6 +1933,18 @@ const searchDropdown = document.getElementById('place-search-dropdown');
 let searchDebounceTimer = null;
 let lastNominatimResults = [];
 
+// Hide the "you can add new places here" hint once the user has searched.
+const searchHint = document.querySelector('.search-hint');
+if (searchHint && localStorage.getItem('searchHintDismissed')) {
+    searchHint.classList.add('hidden');
+}
+function dismissSearchHint() {
+    if (searchHint && !searchHint.classList.contains('hidden')) {
+        searchHint.classList.add('hidden');
+        localStorage.setItem('searchHintDismissed', '1');
+    }
+}
+
 function closeSearchDropdown() {
     searchDropdown.classList.add('hidden');
     searchDropdown.innerHTML = '';
@@ -2030,6 +2042,10 @@ searchInput.addEventListener('input', () => {
     const query = searchInput.value.trim();
     applyFiltersAndRender();
     clearTimeout(searchDebounceTimer);
+
+    if (query.length >= 2) {
+        dismissSearchHint();
+    }
 
     if (query.length < 2) {
         closeSearchDropdown();
