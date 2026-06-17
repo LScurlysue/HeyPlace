@@ -2160,6 +2160,80 @@ helpBtn && helpBtn.addEventListener('click', () => helpModal.classList.remove('h
 helpClose && helpClose.addEventListener('click', () => helpModal.classList.add('hidden'));
 helpBackdrop && helpBackdrop.addEventListener('click', () => helpModal.classList.add('hidden'));
 
+// ── Notifications ──────────────────────────────────────────────
+// To add a new notification: add an object at the TOP of this array.
+// Each notification needs a unique id, date, title, and body.
+const NOTIFICATIONS = [
+  {
+    id: 'notif-2026-06-17',
+    date: 'June 17, 2026',
+    title: '🎉 Welcome to MapFolio!',
+    body: 'This is your notifications centre. Whenever there are new features, tips or updates, you\'ll see them here first. Stay tuned!'
+  }
+];
+
+const NOTIF_STORAGE_KEY = 'mapfolio_notifs_read';
+
+function getReadNotifIds() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_STORAGE_KEY) || '[]'); } catch { return []; }
+}
+
+function markAllNotifsRead() {
+  localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(NOTIFICATIONS.map(n => n.id)));
+}
+
+function getUnreadCount() {
+  const read = getReadNotifIds();
+  return NOTIFICATIONS.filter(n => !read.includes(n.id)).length;
+}
+
+function renderNotifBadge() {
+  const badge = document.getElementById('notif-badge');
+  const count = getUnreadCount();
+  if (count > 0) badge.classList.add('visible');
+  else badge.classList.remove('visible');
+}
+
+function renderNotifModal() {
+  const body = document.getElementById('notif-modal-body');
+  body.innerHTML = NOTIFICATIONS.map(n => `
+    <div class="notif-item">
+      <span class="notif-item-date">${n.date}</span>
+      <span class="notif-item-title">${n.title}</span>
+      <span class="notif-item-body">${n.body}</span>
+    </div>
+  `).join('');
+}
+
+function showNotifBannerIfNeeded() {
+  if (getUnreadCount() > 0) {
+    document.getElementById('notif-banner').classList.remove('hidden');
+  }
+}
+
+// Notification modal interactions
+const notifBtn = document.getElementById('notif-btn');
+const notifModal = document.getElementById('notif-modal');
+const notifModalClose = document.getElementById('notif-modal-close');
+const notifModalBackdrop = document.getElementById('notif-modal-backdrop');
+const notifBanner = document.getElementById('notif-banner');
+const notifBannerClose = document.getElementById('notif-banner-close');
+
+notifBtn && notifBtn.addEventListener('click', () => {
+  renderNotifModal();
+  notifModal.classList.remove('hidden');
+  markAllNotifsRead();
+  renderNotifBadge();
+  notifBanner.classList.add('hidden');
+});
+notifModalClose && notifModalClose.addEventListener('click', () => notifModal.classList.add('hidden'));
+notifModalBackdrop && notifModalBackdrop.addEventListener('click', () => notifModal.classList.add('hidden'));
+notifBannerClose && notifBannerClose.addEventListener('click', () => notifBanner.classList.add('hidden'));
+
+renderNotifBadge();
+showNotifBannerIfNeeded();
+// ───────────────────────────────────────────────────────────────
+
 // Contact modal
 const contactBtn = document.getElementById('contact-btn');
 const contactModal = document.getElementById('contact-modal');
