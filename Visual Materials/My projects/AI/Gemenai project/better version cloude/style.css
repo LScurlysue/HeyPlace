@@ -908,10 +908,17 @@ body {
 /* Brand: title + tagline */
 .topbar-brand {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 10px;
     flex: 1;
+}
+.topbar-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
 }
 .topbar-tagline {
     font-size: 0.65rem;
@@ -948,13 +955,7 @@ body {
     font-weight: 800;
     color: #1c1917;
     letter-spacing: -0.01em;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-.topbar-title svg {
-    display: block;
-    flex-shrink: 0;
+    line-height: 1;
 }
 
 /* Sidebar drawer header */
@@ -1263,7 +1264,7 @@ body {
         box-shadow: 0 2px 8px rgba(255,222,89,0.4);
     }
     .topbar-menu-btn { display: none; }
-    .topbar-brand { align-items: flex-start; flex: 1; }
+    .topbar-brand { align-items: center; justify-content: flex-start; flex: 1; }
     .topbar-title { font-size: 1.15rem; }
     .topbar-tagline { display: block; }
     .topbar-actions { gap: 0.6rem; }
