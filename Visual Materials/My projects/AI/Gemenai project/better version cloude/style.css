@@ -948,6 +948,13 @@ body {
     font-weight: 800;
     color: #1c1917;
     letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.topbar-title svg {
+    display: block;
+    flex-shrink: 0;
 }
 
 /* Sidebar drawer header */
