@@ -231,7 +231,7 @@ function restoreBackup(file, replaceAll) {
             return;
         }
         if (!parsed || !parsed.mapfolioBackup || !parsed.data) {
-            alert('That file does not look like a MapFolio backup.');
+            alert('That file does not look like a MapRitual backup.');
             return;
         }
 
@@ -2168,12 +2168,12 @@ const NOTIFICATIONS = [
     id: 'notif-2026-06-17-move',
     date: 'June 17, 2026',
     title: '📦 Big changes are coming!',
-    body: 'MapFolio is getting a new name and a new home! Before we move, please back up your saved places — go to Settings and tap "Create Backup". This ensures none of your places are lost during the transition.'
+    body: 'MapRitual is getting a new name and a new home! Before we move, please back up your saved places — go to Settings and tap "Create Backup". This ensures none of your places are lost during the transition.'
   },
   {
     id: 'notif-2026-06-17',
     date: 'June 17, 2026',
-    title: '🎉 Welcome to MapFolio!',
+    title: '🎉 Welcome to MapRitual!',
     body: 'This is your notifications centre. Whenever there are new features, tips or updates, you\'ll see them here first. Stay tuned!'
   }
 ];

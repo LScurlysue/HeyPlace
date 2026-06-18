@@ -1,6 +1,6 @@
 {
-  "name": "MapFolio\nOrganize your saved places",
-  "short_name": "MapFolio",
+  "name": "MapRitual\nOrganize your saved places",
+  "short_name": "MapRitual",
   "description": "Organize your favorite places on a personal map.",
   "start_url": "./index.html",
   "display": "standalone",
