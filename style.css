@@ -1043,6 +1043,49 @@ body {
     display: block;
 }
 
+/* Welcome popup */
+.welcome-popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.welcome-popup.hidden { display: none; }
+.welcome-popup-box {
+    background: #fff;
+    border-radius: 18px;
+    padding: 2rem 1.75rem;
+    max-width: 340px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
+.welcome-popup-box h2 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+}
+.welcome-popup-box p {
+    font-size: 0.9rem;
+    color: #444;
+    line-height: 1.5;
+}
+.welcome-popup-btn {
+    margin-top: 1.25rem;
+    background: #ffde59;
+    border: none;
+    border-radius: 30px;
+    padding: 0.65rem 2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+}
+.welcome-popup-btn:hover { background: #f5c400; }
+
 /* Notifications banner */
 .notif-banner {
     position: fixed;

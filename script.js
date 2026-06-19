@@ -2255,6 +2255,18 @@ notifBannerClose && notifBannerClose.addEventListener('click', () => notifBanner
 
 renderNotifBadge();
 showNotifBannerIfNeeded();
+
+// Welcome popup
+const WELCOME_KEY = 'heyplace_welcome_seen';
+const welcomePopup = document.getElementById('welcome-popup');
+const welcomeClose = document.getElementById('welcome-popup-close');
+if (!localStorage.getItem(WELCOME_KEY)) {
+  welcomePopup.classList.remove('hidden');
+}
+welcomeClose && welcomeClose.addEventListener('click', () => {
+  welcomePopup.classList.add('hidden');
+  localStorage.setItem(WELCOME_KEY, '1');
+});
 // ───────────────────────────────────────────────────────────────
 
 // Contact modal
