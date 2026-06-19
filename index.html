@@ -363,7 +363,11 @@
             </header>
 
             <section class="search-section">
-                <p class="search-hint">Not in your collection yet? Type any place name or address to find and add it. For best results use a full address — business names may not pin accurately.</p>
+                <div class="search-hint-wrapper" id="search-hint-wrapper">
+                    <p class="search-hint">Not in your collection yet? Type any place name or address to find and add it. For best results use a full address — business names may not pin accurately.</p>
+                    <button class="search-hint-close" id="search-hint-close" title="Close tip">✕</button>
+                </div>
+                <button class="search-hint-toggle hidden" id="search-hint-toggle" title="Show search tip">💡</button>
                 <div class="search-input-wrapper" style="position:relative;">
                     <span class="search-icon">🔍</span>
                     <input type="text" id="local-search-input" placeholder="Search or add a place..." class="search-input local-search" autocomplete="off" />

@@ -2160,6 +2160,27 @@ helpBtn && helpBtn.addEventListener('click', () => helpModal.classList.remove('h
 helpClose && helpClose.addEventListener('click', () => helpModal.classList.add('hidden'));
 helpBackdrop && helpBackdrop.addEventListener('click', () => helpModal.classList.add('hidden'));
 
+// Search hint toggle
+const searchHintWrapper = document.getElementById('search-hint-wrapper');
+const searchHintClose = document.getElementById('search-hint-close');
+const searchHintToggle = document.getElementById('search-hint-toggle');
+const HINT_KEY = 'heyplace_search_hint_closed';
+
+if (localStorage.getItem(HINT_KEY)) {
+  searchHintWrapper.classList.add('hidden');
+  searchHintToggle.classList.remove('hidden');
+}
+searchHintClose && searchHintClose.addEventListener('click', () => {
+  searchHintWrapper.classList.add('hidden');
+  searchHintToggle.classList.remove('hidden');
+  localStorage.setItem(HINT_KEY, '1');
+});
+searchHintToggle && searchHintToggle.addEventListener('click', () => {
+  searchHintWrapper.classList.remove('hidden');
+  searchHintToggle.classList.add('hidden');
+  localStorage.removeItem(HINT_KEY);
+});
+
 // ── Notifications ──────────────────────────────────────────────
 // To add a new notification: add an object at the TOP of this array.
 // Each notification needs a unique id, date, title, and body.
