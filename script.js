@@ -2165,12 +2165,6 @@ helpBackdrop && helpBackdrop.addEventListener('click', () => helpModal.classList
 // Each notification needs a unique id, date, title, and body.
 const NOTIFICATIONS = [
   {
-    id: 'notif-2026-06-17-move',
-    date: 'June 17, 2026',
-    title: '📦 Big changes are coming!',
-    body: 'HeyPlace is getting a new name and a new home! Before we move, please back up your saved places — go to Settings and tap "Create Backup". This ensures none of your places are lost during the transition.'
-  },
-  {
     id: 'notif-2026-06-17',
     date: 'June 17, 2026',
     title: '🎉 Welcome to HeyPlace!',
