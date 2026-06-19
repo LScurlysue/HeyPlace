@@ -1220,9 +1220,15 @@ body {
     align-items: flex-start;
 }
 .help-section-icon {
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     flex-shrink: 0;
-    margin-top: 2px;
+    width: 36px;
+    height: 36px;
+    background: #ffde59;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .help-section h3 {
     font-size: 0.95rem;
