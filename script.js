@@ -2770,7 +2770,7 @@ function renderStats() {
     }
 
     const statusOrder = ['Favourite','Want to Go','Been There','Loved It','Meh','Skip It','Unsorted'];
-    const statusEmojis = { 'Favourite':'⭐','Want to Go':'🔵','Been There':'🟡','Loved It':'🟢','Meh':'🟤','Skip It':'🔴','Unsorted':'⚪' };
+    const statusEmojis = { 'Favourite':'⭐','Want to Go':'🔵','Been There':'🟡','Loved It':'🟢','Meh':'🟤','Skip It':'🔴','Unsorted':'🔘' };
 
     body.innerHTML = `
         <div class="stats-hero">
@@ -3125,7 +3125,7 @@ const TRIP_STATUSES = [
     { name: 'Want to Go', emoji: '🔵', on: true },
     { name: 'Loved It',   emoji: '🟢', on: true },
     { name: 'Been There', emoji: '🟡', on: true },
-    { name: 'Unsorted',   emoji: '⚪', on: true },
+    { name: 'Unsorted',   emoji: '🔘', on: true },
     { name: 'Meh',        emoji: '🟤', on: false },
     { name: 'Skip It',    emoji: '🔴', on: false },
 ];
