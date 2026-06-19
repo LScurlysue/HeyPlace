@@ -1206,7 +1206,7 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
 function applyFiltersAndRender() {
     // Shrink the Import Places banner once the user has places — it's
     // most useful as an onboarding prompt for an empty collection.
-    document.querySelector('.upload-section')?.classList.toggle('compact', allPlaces.length > 0);
+    document.querySelector('.upload-section')?.classList.add('compact');
 
     renderFoldersList();
     renderRecentlyAdded();
