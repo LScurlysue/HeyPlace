@@ -1403,6 +1403,8 @@ const AFFILIATE_IDS = {
 };
 
 function buildAffiliateLinks(place, category) {
+    return []; // affiliate links hidden until partner IDs are ready
+
     const q = encodeURIComponent(place.name + (place.address ? ' ' + place.address : ''));
     const links = [];
 
