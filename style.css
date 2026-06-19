@@ -1685,15 +1685,16 @@ body {
 }
 .trip-btn-icon {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-md);
-    background: #fff7d6;
+    background: #ffde59;
     font-size: 1.1rem;
-    color: #9a7b00;
+    color: #1a1a1a;
+    border-radius: 10px;
 }
 [data-theme="dark"] .trip-btn-icon {
     background: rgba(255, 222, 89, 0.15);
