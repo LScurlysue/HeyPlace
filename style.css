@@ -1536,8 +1536,12 @@ body {
     /* Hide the old sheet handle — replaced by topbar */
     .sheet-handle { display: none; }
 
-    /* On mobile keep only notifications and theme toggle in topbar */
-    #settings-btn, #help-btn, #contact-btn { display: none; }
+    /* Show all icons on mobile — smaller to fit */
+    #settings-btn, #help-btn, #contact-btn { display: flex; }
+    .topbar-icon-btn { width: 28px; height: 28px; font-size: 0.8rem; }
+    .topbar-actions { gap: 0.25rem; }
+    .topbar-menu-btn { gap: 0.2rem; font-size: 0.8rem; }
+    .topbar-menu-btn span { display: none; }
 
     /* Section padding tighter on mobile */
     .sidebar-header,
