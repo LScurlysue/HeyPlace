@@ -600,12 +600,13 @@ body {
     flex: 1;
     margin: 0;
     font-size: 0.78rem;
-    color: #555;
+    color: #333;
     line-height: 1.4;
     background: #fff8dc;
     border-left: 3px solid #ffde59;
     padding: 0.4rem 0.6rem;
     border-radius: 4px;
+    display: block !important;
 }
 .search-hint-close {
     background: none;
