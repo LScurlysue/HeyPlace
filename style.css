@@ -1224,11 +1224,12 @@ body {
     flex-shrink: 0;
     width: 36px;
     height: 36px;
-    background: #ffde59;
+    background: #fff7d6;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #9a7b00;
 }
 .help-section h3 {
     font-size: 0.95rem;
@@ -1691,9 +1692,9 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: var(--radius-md);
-    background: #ffde59;
+    background: #fff7d6;
     font-size: 1.1rem;
-    color: #1a1a1a;
+    color: #9a7b00;
     border-radius: 10px;
 }
 [data-theme="dark"] .trip-btn-icon {
