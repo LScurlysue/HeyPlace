@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeyPlace</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="theme-color" content="#ffde59">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="HeyPlace">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- Top bar -->
+    <header class="topbar" id="topbar">
+        <button class="topbar-menu-btn" id="drawer-open-btn" aria-label="Open menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            <span>Menu</span>
+        </button>
+        <div class="topbar-brand">
+            <svg width="36" height="36" viewBox="0 0 60 60" style="border-radius:9px;flex-shrink:0;" aria-hidden="true">
+                <rect width="60" height="60" rx="13" fill="#ffde59"/>
+                <path d="M30,11 C37,11 43,17 43,25 C43,37 30,49 30,49 C30,49 17,37 17,25 C17,17 23,11 30,11 Z" fill="#1a1a1a"/>
+                <path d="M30,36 C30,36 23,31 23,26 C23,23 25,21 28,22 C29,22.5 30,24 30,24 C30,24 31,22.5 32,22 C35,21 37,23 37,26 C37,31 30,36 30,36 Z" fill="#ffde59"/>
+            </svg>
+            <div class="topbar-text">
+                <span class="topbar-title">HeyPlace</span>
+                <span class="topbar-tagline">Every place worth remembering</span>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <button id="settings-btn" class="topbar-icon-btn" title="Backup & Restore"><i class="ti ti-settings" aria-hidden="true"></i></button>
+            <button id="help-btn" class="topbar-icon-btn" title="How to use HeyPlace">?</button>
+            <button id="contact-btn" class="topbar-icon-btn" title="Questions & suggestions"><i class="ti ti-message-circle" aria-hidden="true"></i></button>
+            <button id="notif-btn" class="topbar-icon-btn notif-btn" title="What's new">
+                <i class="ti ti-bell" aria-hidden="true"></i>
+                <span class="notif-badge" id="notif-badge" aria-label="unread notifications"></span>
+            </button>
+            <button id="theme-toggle-mobile" class="theme-toggle-btn" title="Toggle Theme">🌓</button>
+        </div>
+    </header>
+
+    <!-- Help modal -->
+    <div id="help-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="help-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>How to use HeyPlace</h2>
+                <button class="help-modal-close" id="help-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+
+                <div class="help-section">
+                    <div class="help-section-icon">📄</div>
+                    <div>
+                        <h3>New here? Get the Quick Start Guide</h3>
+                        <p>A short, non-technical PDF/Word guide that walks through setup, importing places and the basics — handy to keep or share.</p>
+                        <p><a href="HeyPlace-Quick-Start-Guide.docx" download>⬇️ Download Quick Start Guide</a></p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">➕</div>
+                    <div>
+                        <h3>Add a place manually</h3>
+                        <p>Tap <strong>Menu → Search</strong>, type any place name or address. Results appear below — tap <strong>"Add as new place"</strong> to pin it on your map under the name you typed, even if the suggestions don't match exactly.</p>
+                        <p>If the place can't be found automatically, you can still add it and enter its coordinates by hand.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📥</div>
+                    <div>
+                        <h3>Import from Google Maps</h3>
+                        <p>This is a 4-step process — takes about 5 minutes the first time:</p>
+                        <ol class="help-steps">
+                            <li>Open <strong>Google Takeout</strong> — search it in Google or go to <em>takeout.google.com</em></li>
+                            <li>Click <strong>"Deselect all"</strong>, then scroll down and tick only <strong>"Maps (your places)"</strong></li>
+                            <li>Click <strong>Next step → Create export</strong>. Google emails you a download link (usually within a few minutes).</li>
+                            <li>Download the ZIP file → open it → find the <strong>Takeout / Maps</strong> folder → you'll see files ending in <strong>.json</strong>, <strong>.csv</strong> or <strong>.kml / .kmz</strong></li>
+                            <li>Back in HeyPlace, tap <strong>Menu → Import Places</strong> and select those files. Done! 🎉</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📊</div>
+                    <div>
+                        <h3>Importing CSV / spreadsheet files</h3>
+                        <p>HeyPlace also accepts <strong>.csv</strong> files — including the "Saved places" lists from Google Takeout, or your own spreadsheet exported as CSV.</p>
+                        <p>For best results, include columns for <strong>name/title</strong>, and either <strong>latitude/longitude</strong> or an <strong>address</strong> (HeyPlace will look up coordinates automatically). A <strong>URL</strong> column is also recognized if present.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📁</div>
+                    <div>
+                        <h3>Folders &amp; categories</h3>
+                        <p>Imported files become <strong>folders</strong> automatically. Tap a folder to filter the map to just those pins. Each pin can also have a <strong>category</strong> (Restaurant, Museum…) and a <strong>status</strong> (Want to Go, Loved It…).</p>
+                        <p>Don't see a category that fits (e.g. "friend's home")? Use the <strong>➕ Add custom category</strong> option in settings to create your own, with its own emoji icon.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🎨</div>
+                    <div>
+                        <h3>Status colours</h3>
+                        <p>Each pin's colour shows its status: <strong>blue</strong> = Want to Go, <strong>amber</strong> = Been There, <strong>green</strong> = Loved It, <strong>brown</strong> = Meh, <strong>red</strong> = Skip It, <strong>grey</strong> = Unsorted, and <strong>gold</strong> = Favourite.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🕐</div>
+                    <div>
+                        <h3>Recently added</h3>
+                        <p>Places you add manually (not imported ones) show up in the <strong>Recently added</strong> section on the sidebar, so you can quickly find your latest additions.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">📌</div>
+                    <div>
+                        <h3>Edit a place</h3>
+                        <p>Tap any pin on the map to open its details. Change the name, category, status or folder, then tap <strong>Save</strong>.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">⚠️</div>
+                    <div>
+                        <h3>Unpinned places</h3>
+                        <p>If HeyPlace couldn't find a location for an imported place, it shows up under <strong>⚠️ Unpinned places</strong> in the sidebar.</p>
+                        <p>Tap the <strong>📍 Fix All</strong> button to look them all up automatically — it changes to <strong>⏳ progress</strong> (e.g. "3/12") while it works through the list, about one place per second, so larger lists can take a minute or two.</p>
+                        <p>For anything it can't find, tap the ✏️ next to that place to enter its coordinates by hand.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🗂️</div>
+                    <div>
+                        <h3>Trip planner &amp; stats</h3>
+                        <p>Use <strong>Trip planner</strong> to turn a folder of places into a day-by-day itinerary by walking or driving. Check <strong>My stats</strong> for an overview of countries, categories and your travel progress.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon">🌓</div>
+                    <div>
+                        <h3>Light &amp; dark theme</h3>
+                        <p>Tap the moon/sun icon in the top bar to switch between light and dark mode. Your choice is saved for next time.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications banner -->
+    <div id="notif-banner" class="notif-banner hidden">
+        <span>🔔 You have new updates — check notifications!</span>
+        <button id="notif-banner-close" class="notif-banner-close">Got it</button>
+    </div>
+
+    <!-- Notifications modal -->
+    <div id="notif-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="notif-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>🔔 What's new</h2>
+                <button class="help-modal-close" id="notif-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body" id="notif-modal-body">
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact modal -->
+    <div id="contact-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="contact-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>💬 Questions & suggestions</h2>
+                <button class="help-modal-close" id="contact-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-section">
+                    <div class="help-section-icon">💬</div>
+                    <div>
+                        <h3>Get in touch</h3>
+                        <p>Reach out to Liliia Sainchuk with any questions, feedback or suggestions:</p>
+                        <p>📧 <a href="mailto:creative.space.today@gmail.com">creative.space.today@gmail.com</a></p>
+                        <p>💬 <a href="https://wa.me/34634339325" target="_blank" rel="noopener">WhatsApp</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trip planner setup modal -->
+    <div id="trip-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="trip-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>🗂️ Plan a trip</h2>
+                <button class="help-modal-close" id="trip-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <div class="form-group">
+                    <label for="trip-folder-select">Which places?</label>
+                    <select id="trip-folder-select"></select>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label>Include statuses</label>
+                    <div id="trip-status-filters" class="trip-status-filters"></div>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label>Getting around</label>
+                    <div class="trip-mode-toggle" id="trip-mode-toggle">
+                        <label class="trip-mode-option"><input type="radio" name="trip-mode" value="walk" checked /> 🚶 Walking</label>
+                        <label class="trip-mode-option"><input type="radio" name="trip-mode" value="drive" /> 🚗 Driving</label>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label for="trip-days-input">How many days?</label>
+                    <input type="number" id="trip-days-input" min="1" max="14" value="3" class="search-input" style="width:100%;box-sizing:border-box;" />
+                </div>
+                <div id="trip-modal-hint" class="trip-modal-hint"></div>
+                <button id="trip-generate-btn" class="action-btn save-modifications-btn" style="margin-top:1rem;width:100%;">✨ Build my itinerary</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings modal (Backup & Restore) -->
+    <div id="settings-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="settings-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>⚙️ Backup & Restore</h2>
+                <button class="help-modal-close" id="settings-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <p class="backup-hint">Your data lives only on this device. Save a backup file before switching phones or browsers — and load it again on the other device to bring everything across.</p>
+                <div class="backup-buttons">
+                    <button id="backup-btn" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-download" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">Download backup</span>
+                            <span class="trip-btn-hint">Save all your places, folders & trips as a file</span>
+                        </span>
+                    </button>
+                    <label for="restore-upload" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-upload" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">Restore from backup</span>
+                            <span class="trip-btn-hint">Merges with what's already on this device — your other places & edits are kept</span>
+                        </span>
+                    </label>
+                    <input id="restore-upload" type="file" accept=".json" style="display: none;" />
+                    <label class="backup-replace-option">
+                        <input type="checkbox" id="restore-replace-checkbox" />
+                        Replace everything instead (for setting up a brand new device)
+                    </label>
+                </div>
+                <p class="backup-hint">📤 <strong>Sharing a folder with a friend:</strong> open the folder list, tap 📤 next to any folder to download just that folder as a file. They can open it with "Restore from backup" above (leaving the replace box unchecked) to add it to their own map.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats modal -->
+    <div id="stats-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="stats-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>📊 My stats</h2>
+                <button class="help-modal-close" id="stats-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body" id="stats-body"></div>
+        </div>
+    </div>
+
+    <!-- Bulk edit folder modal -->
+    <div id="bulk-edit-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="bulk-edit-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>🏷️ Edit all places in folder</h2>
+                <button class="help-modal-close" id="bulk-edit-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <p id="bulk-edit-folder-desc" style="margin-top:0;"></p>
+                <div class="form-group">
+                    <label>Set category for all</label>
+                    <select id="bulk-edit-category">
+                        <option value="__nochange">Don't change</option>
+                        <option value="__autodetect">🤖 Auto-detect from each place's name</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top:0.75rem;">
+                    <label>Set status for all</label>
+                    <select id="bulk-edit-status">
+                        <option value="__nochange">Don't change</option>
+                        <option value="Unsorted">⚪ Unsorted</option>
+                        <option value="Favourite">⭐ Favourite</option>
+                        <option value="Want to Go">🔵 Want to Go</option>
+                        <option value="Been There">🟡 Been There</option>
+                        <option value="Loved It">🟢 Loved It</option>
+                        <option value="Meh">🟤 Meh</option>
+                        <option value="Skip It">🔴 Skip It</option>
+                    </select>
+                </div>
+                <button id="bulk-edit-apply-btn" class="action-btn save-modifications-btn" style="margin-top:1rem;width:100%;">Apply to all places</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drawer backdrop -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+
+    <main class="app-container">
+        <aside class="sidebar" id="mobile-sheet" data-state="collapsed">
+            <div class="sheet-handle" id="sheet-handle">
+                <div class="sheet-handle-bar"></div>
+            </div>
+            <div class="sidebar-scroll-body">
+            <header class="sidebar-header">
+                <div class="header-top">
+                    <div>
+                        <h1>📍 HeyPlace</h1>
+                        <p class="sidebar-subtitle">Every place worth remembering.</p>
+                    </div>
+                    <button id="theme-toggle" class="theme-toggle-btn" title="Toggle Theme">🌓</button>
+                </div>
+            </header>
+
+            <section class="search-section">
+                <p class="search-hint">For best results use a full address — business names may not pin accurately.</p>
+                <div class="search-input-wrapper" style="position:relative;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="local-search-input" placeholder="Search or add a place..." class="search-input local-search" autocomplete="off" />
+                    <div id="place-search-dropdown" class="place-search-dropdown hidden"></div>
+                </div>
+            </section>
+
+            <section class="upload-section">
+                <label for="file-upload" class="import-btn">
+                    <span class="import-btn-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </span>
+                    <span class="import-btn-text">
+                        <span class="import-btn-title">Import Places</span>
+                        <span class="import-btn-hint">JSON · KMZ / KML · CSV</span>
+                    </span>
+                </label>
+                <input id="file-upload" type="file" accept=".json,.kmz,.kml,.csv" multiple style="display: none;" />
+            </section>
+
+            <section class="filters-section section-block">
+                <div class="folders-toggle" id="filters-toggle" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                    <h3 style="margin:0;flex:1;">Filters</h3>
+                    <span class="folders-chevron collapsed" id="filters-chevron">▾</span>
+                </div>
+                <div class="filters-container collapsed" id="filters-body">
+                    <div class="filter-group">
+                        <label for="filter-category">Category</label>
+                        <select id="filter-category">
+                            <option value="All">All Categories</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-status">Status</label>
+                        <select id="filter-status">
+                            <option value="All">All Statuses</option>
+                            <option value="Favourite">Favourite ⭐</option>
+                            <option value="Want to Go">Want to Go 🔵</option>
+                            <option value="Been There">Been There 🟡</option>
+                            <option value="Loved It">Loved It 🟢</option>
+                            <option value="Meh">Meh 🟤</option>
+                            <option value="Skip It">Skip It 🔴</option>
+                            <option value="Unsorted">Unsorted ⚪</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filter-country">Country</label>
+                        <select id="filter-country">
+                            <option value="All">🌍 All Countries</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="trip-section section-block">
+                <div class="folders-toggle" id="tools-toggle" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                    <h3 style="margin:0;flex:1;">Tools</h3>
+                    <span class="folders-chevron collapsed" id="tools-chevron">▾</span>
+                </div>
+                <div class="tools-body collapsed" id="tools-body">
+                    <button id="trip-planner-btn" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-route" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">Trip planner</span>
+                            <span class="trip-btn-hint">Turn a folder into a day-by-day itinerary</span>
+                        </span>
+                    </button>
+                    <button id="stats-btn" class="trip-planner-btn">
+                        <span class="trip-btn-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></span>
+                        <span class="trip-btn-text">
+                            <span class="trip-btn-title">My stats</span>
+                            <span class="trip-btn-hint">Countries, categories and travel progress</span>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <section id="recent-added-section" class="recent-added-section section-block hidden">
+                <div class="folders-toggle" id="recent-added-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
+                    <h3 style="margin:0;flex:1;">Recently added</h3>
+                    <span class="folders-chevron" id="recent-added-chevron">▾</span>
+                </div>
+                <div id="recent-added-body">
+                    <ul id="recent-added-list" class="recent-added-list" style="list-style:none; padding:0; margin:0;"></ul>
+                </div>
+            </section>
+
+            <section id="saved-trips-section" class="saved-trips-section section-block hidden">
+                <div class="folders-toggle" id="saved-trips-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
+                    <h3 style="margin:0;flex:1;">Saved trips</h3>
+                    <span class="folders-chevron" id="saved-trips-chevron">▾</span>
+                </div>
+                <div id="saved-trips-body">
+                    <ul id="saved-trips-list" class="saved-trips-list" style="list-style:none; padding:0; margin:0;"></ul>
+                </div>
+            </section>
+
+          <section class="folders-section section-block">
+    <div class="section-header-row">
+        <div class="folders-toggle" id="folders-toggle" style="display:flex;align-items:center;gap:0.5rem;flex:1;cursor:pointer;">
+            <h3 style="margin:0;">Folders <span class="active-folder-label" id="active-folder-label"></span></h3>
+            <button id="add-folder-btn" class="icon-action-btn" title="Create New Folder">➕</button>
+            <span class="folders-chevron" id="folders-chevron" style="margin-left:auto;">▾</span>
+        </div>
+    </div>
+    <div id="folders-body">
+        <div class="folder-search-wrapper" style="margin: 0.5rem 0; width: 100%;">
+            <input type="text" id="folder-search-input" placeholder="Search folders..." class="search-input" style="padding: 0.4rem 0.6rem; font-size: 0.8rem; width: 100%; box-sizing: border-box;" autocomplete="off" />
+        </div>
+        <ul id="folders-list" class="folders-list inline-scroll" style="list-style: none; padding: 0; margin: 0;"></ul>
+    </div>
+</section>
+            <div id="unpinned-section" class="unpinned-section hidden">
+                <div id="unpinned-header" class="unpinned-header">
+                    <span>⚠️ Unpinned places</span>
+                    <span id="unpinned-count" class="unpinned-count">0</span>
+                    <button id="geocode-all-btn" title="Look up coordinates for all places below automatically (about 1 per second)" style="margin-left:auto;padding:2px 8px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">📍 Fix All</button>
+                </div>
+                <p class="unpinned-hint">These places have no location yet. Tap <strong>📍 Fix All</strong> above to look them up automatically — it'll switch to <strong>⏳</strong> while it works and may take a minute. Or tap <strong>✏️</strong> next to a place below to enter coordinates by hand.</p>
+                <ul id="unpinned-list" class="unpinned-list hidden"></ul>
+            </div>
+
+            </div><!-- /.sidebar-scroll-body -->
+            <!-- Empty state shown when no places loaded -->
+            <div id="empty-state" class="empty-state hidden">
+                <div class="empty-state-icon">🗺️</div>
+                <h3>Your map is empty</h3>
+                <p>Import your Google Maps saved places, or try the demo to see how HeyPlace works.</p>
+                <button id="load-demo-btn" class="demo-btn">✨ Load demo places</button>
+            </div>
+
+            <div class="sidebar-footer">
+                <span id="places-footer">📍 0 places</span>
+                <button id="clear-demo-btn" class="clear-demo-btn hidden" title="Remove demo places">✕ Clear demo</button>
+            </div>
+        </aside>
+
+        <section class="map-container">
+            <div id="map"></div>
+            <button class="fab" id="fab-add" title="Add a place">+</button>
+
+            <div id="trip-panel" class="trip-panel hidden">
+                <div class="trip-panel-header">
+                    <div>
+                        <h3 id="trip-panel-title">Your trip</h3>
+                        <span id="trip-panel-subtitle" class="trip-panel-subtitle"></span>
+                    </div>
+                    <div class="trip-panel-actions">
+                        <button id="trip-save-btn" class="trip-save-btn" title="Save this trip">💾 Save</button>
+                        <button id="trip-exit-btn" class="trip-exit-btn" title="Exit trip mode">&times;</button>
+                    </div>
+                </div>
+                <div id="trip-day-tabs" class="trip-day-tabs"></div>
+                <div id="trip-day-body" class="trip-day-body"></div>
+            </div>
+            
+            <div id="triage-panel" class="triage-panel hidden">
+                <button id="close-triage" class="close-btn">&times;</button>
+                <input type="text" id="triage-title" class="triage-title-input" placeholder="Place Name" />
+                <input type="text" id="triage-address" class="triage-address-input" placeholder="Address" />
+                
+                <div class="gmaps-link-container">
+                    <a id="triage-url" href="#" target="_blank" class="triage-link">🌐 View on Google Maps →</a>
+                </div>
+
+                <div id="needs-review-banner" class="needs-review-banner hidden">
+                    <span>⚠️ This pin's location looks far from your other places in this folder — double-check it.</span>
+                    <button id="dismiss-review-btn" type="button" class="needs-review-dismiss">Looks correct</button>
+                </div>
+
+                <!-- ── AFFILIATE BOOK IT BUTTON ── -->
+                <div id="affiliate-bar" class="hidden" style="margin:0.4rem 0 0.2rem;display:flex;gap:0.4rem;flex-wrap:wrap;"></div>
+                <!-- ── END AFFILIATE ── -->
+                
+                <div class="triage-form">
+                    <div class="coordinates-row" style="display: flex; gap: 0.5rem; width: 100%;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>Latitude</label>
+                            <input type="text" id="triage-lat" placeholder="e.g. 37.1028" class="search-input" style="padding: 0.4rem;" />
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Longitude</label>
+                            <input type="text" id="triage-lng" placeholder="e.g. -8.6732" class="search-input" style="padding: 0.4rem;" />
+                        </div>
+                    </div>
+                    <div id="geocode-status" class="geocode-status hidden"></div>
+
+                    <div class="form-group">
+                        <label style="display:flex; justify-content:space-between; align-items:center;">
+                            Category
+                            <button id="add-category-btn" class="icon-action-btn" title="Add, rename or delete your custom categories" style="font-size:0.8rem;">⚙️ Manage</button>
+                        </label>
+                        <select id="triage-category">
+                            <option value="Unassigned">Select a Category</option>
+                        </select>
+                        <div id="custom-categories-list" class="custom-categories-list hidden"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Visits Tracker Status</label>
+                        <select id="triage-status">
+                            <option value="Unsorted">⚪ Unsorted</option>
+                            <option value="Favourite">⭐ Favourite</option>
+                            <option value="Want to Go">🔵 Want to Go</option>
+                            <option value="Been There">🟡 Been There</option>
+                            <option value="Loved It">🟢 Loved It</option>
+                            <option value="Meh">🟤 Meh</option>
+                            <option value="Skip It">🔴 Skip It</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assigned Folder Source</label>
+                        <select id="triage-folder">
+                            <option value="Uncategorized">Uncategorized / General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>📝 Notes</label>
+                        <textarea id="triage-notes" class="triage-notes-input" placeholder="Why you added this place, what you liked or didn't like, tips for next time…" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                    <button id="save-coords-btn" class="action-btn save-modifications-btn">💾 Save changes</button>
+                </div>
+
+                <button id="delete-place-btn" class="delete-place-btn">🗑️ Delete this place</button>
+
+                <div id="delete-confirm" class="delete-confirm hidden">
+                    <p>Are you sure? This can't be undone.</p>
+                    <div class="delete-confirm-buttons">
+                        <button id="confirm-delete-btn" class="action-btn confirm-yes-btn">Yes, delete</button>
+                        <button id="cancel-delete-btn" class="action-btn confirm-no-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

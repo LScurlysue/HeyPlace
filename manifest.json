@@ -1,0 +1,23 @@
+{
+  "name": "HeyPlace\nOrganize your saved places",
+  "short_name": "HeyPlace",
+  "description": "Organize your favorite places on a personal map.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffde59",
+  "theme_color": "#ffde59",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
