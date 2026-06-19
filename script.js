@@ -1196,11 +1196,12 @@ document.getElementById('add-folder-btn').addEventListener('click', (e) => {
     });
 });
 
-document.getElementById('theme-toggle').addEventListener('click', () => {
+document.getElementById('theme-toggle')?.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', nextTheme);
     localStorage.setItem('mapfolio_theme', nextTheme);
+    document.getElementById('theme-toggle').textContent = nextTheme === 'dark' ? '☀️' : '🌓';
 });
 
 function applyFiltersAndRender() {
