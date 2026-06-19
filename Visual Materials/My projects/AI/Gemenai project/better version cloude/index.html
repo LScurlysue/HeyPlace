@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MapRitual</title>
+    <title>HeyPlace</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <meta name="theme-color" content="#ffde59">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="MapRitual">
+    <meta name="apple-mobile-web-app-title" content="HeyPlace">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,13 +36,13 @@
                 <path d="M30,36 C30,36 23,31 23,26 C23,23 25,21 28,22 C29,22.5 30,24 30,24 C30,24 31,22.5 32,22 C35,21 37,23 37,26 C37,31 30,36 30,36 Z" fill="#ffde59"/>
             </svg>
             <div class="topbar-text">
-                <span class="topbar-title">MapRitual</span>
+                <span class="topbar-title">HeyPlace</span>
                 <span class="topbar-tagline">Every place worth remembering</span>
             </div>
         </div>
         <div class="topbar-actions">
             <button id="settings-btn" class="topbar-icon-btn" title="Backup & Restore"><i class="ti ti-settings" aria-hidden="true"></i></button>
-            <button id="help-btn" class="topbar-icon-btn" title="How to use MapRitual">?</button>
+            <button id="help-btn" class="topbar-icon-btn" title="How to use HeyPlace">?</button>
             <button id="contact-btn" class="topbar-icon-btn" title="Questions & suggestions"><i class="ti ti-message-circle" aria-hidden="true"></i></button>
             <button id="notif-btn" class="topbar-icon-btn notif-btn" title="What's new">
                 <i class="ti ti-bell" aria-hidden="true"></i>
@@ -58,7 +58,7 @@
         <div class="help-modal-sheet">
             <div class="help-modal-handle"></div>
             <div class="help-modal-header">
-                <h2>How to use MapRitual</h2>
+                <h2>How to use HeyPlace</h2>
                 <button class="help-modal-close" id="help-modal-close">✕</button>
             </div>
             <div class="help-modal-body">
@@ -68,7 +68,7 @@
                     <div>
                         <h3>New here? Get the Quick Start Guide</h3>
                         <p>A short, non-technical PDF/Word guide that walks through setup, importing places and the basics — handy to keep or share.</p>
-                        <p><a href="MapRitual-Quick-Start-Guide.docx" download>⬇️ Download Quick Start Guide</a></p>
+                        <p><a href="HeyPlace-Quick-Start-Guide.docx" download>⬇️ Download Quick Start Guide</a></p>
                     </div>
                 </div>
 
@@ -91,7 +91,7 @@
                             <li>Click <strong>"Deselect all"</strong>, then scroll down and tick only <strong>"Maps (your places)"</strong></li>
                             <li>Click <strong>Next step → Create export</strong>. Google emails you a download link (usually within a few minutes).</li>
                             <li>Download the ZIP file → open it → find the <strong>Takeout / Maps</strong> folder → you'll see files ending in <strong>.json</strong>, <strong>.csv</strong> or <strong>.kml / .kmz</strong></li>
-                            <li>Back in MapRitual, tap <strong>Menu → Import Places</strong> and select those files. Done! 🎉</li>
+                            <li>Back in HeyPlace, tap <strong>Menu → Import Places</strong> and select those files. Done! 🎉</li>
                         </ol>
                     </div>
                 </div>
@@ -100,8 +100,8 @@
                     <div class="help-section-icon">📊</div>
                     <div>
                         <h3>Importing CSV / spreadsheet files</h3>
-                        <p>MapRitual also accepts <strong>.csv</strong> files — including the "Saved places" lists from Google Takeout, or your own spreadsheet exported as CSV.</p>
-                        <p>For best results, include columns for <strong>name/title</strong>, and either <strong>latitude/longitude</strong> or an <strong>address</strong> (MapRitual will look up coordinates automatically). A <strong>URL</strong> column is also recognized if present.</p>
+                        <p>HeyPlace also accepts <strong>.csv</strong> files — including the "Saved places" lists from Google Takeout, or your own spreadsheet exported as CSV.</p>
+                        <p>For best results, include columns for <strong>name/title</strong>, and either <strong>latitude/longitude</strong> or an <strong>address</strong> (HeyPlace will look up coordinates automatically). A <strong>URL</strong> column is also recognized if present.</p>
                     </div>
                 </div>
 
@@ -142,7 +142,7 @@
                     <div class="help-section-icon">⚠️</div>
                     <div>
                         <h3>Unpinned places</h3>
-                        <p>If MapRitual couldn't find a location for an imported place, it shows up under <strong>⚠️ Unpinned places</strong> in the sidebar.</p>
+                        <p>If HeyPlace couldn't find a location for an imported place, it shows up under <strong>⚠️ Unpinned places</strong> in the sidebar.</p>
                         <p>Tap the <strong>📍 Fix All</strong> button to look them all up automatically — it changes to <strong>⏳ progress</strong> (e.g. "3/12") while it works through the list, about one place per second, so larger lists can take a minute or two.</p>
                         <p>For anything it can't find, tap the ✏️ next to that place to enter its coordinates by hand.</p>
                     </div>
@@ -344,7 +344,7 @@
             <header class="sidebar-header">
                 <div class="header-top">
                     <div>
-                        <h1>📍 MapRitual</h1>
+                        <h1>📍 HeyPlace</h1>
                         <p class="sidebar-subtitle">Every place worth remembering.</p>
                     </div>
                     <button id="theme-toggle" class="theme-toggle-btn" title="Toggle Theme">🌓</button>
@@ -480,7 +480,7 @@
             <div id="empty-state" class="empty-state hidden">
                 <div class="empty-state-icon">🗺️</div>
                 <h3>Your map is empty</h3>
-                <p>Import your Google Maps saved places, or try the demo to see how MapRitual works.</p>
+                <p>Import your Google Maps saved places, or try the demo to see how HeyPlace works.</p>
                 <button id="load-demo-btn" class="demo-btn">✨ Load demo places</button>
             </div>
 
