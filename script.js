@@ -855,9 +855,17 @@ function processCSV(text, filenameContext) {
         if (!customFolders.includes(filenameContext)) {
             customFolders.push(filenameContext);
         }
+        const filenameStatusMap = {
+            'want to go': 'Want to Go',
+            'starred places': 'Favourite',
+            'favorites': 'Favourite',
+            'favourites': 'Favourite',
+            'done': 'Been There',
+        };
+        const autoStatus = filenameStatusMap[filenameContext.trim().toLowerCase()] || 'Unsorted';
         triageData[placeId] = {
             category: detectCategory(name, address),
-            status: 'Unsorted',
+            status: autoStatus,
             folder: filenameContext
         };
 
