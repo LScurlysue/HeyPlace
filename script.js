@@ -861,6 +861,8 @@ function processCSV(text, filenameContext) {
             'favorites': 'Favourite',
             'favourites': 'Favourite',
             'done': 'Been There',
+            'visited': 'Been There',
+            'been there': 'Been There',
         };
         const autoStatus = filenameStatusMap[filenameContext.trim().toLowerCase()] || 'Unsorted';
         triageData[placeId] = {
