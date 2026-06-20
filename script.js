@@ -2189,6 +2189,12 @@ searchHintToggle && searchHintToggle.addEventListener('click', () => {
 // Each notification needs a unique id, date, title, and body.
 const NOTIFICATIONS = [
   {
+    id: 'notif-2026-06-20-data',
+    date: 'June 20, 2026',
+    title: '📦 A note about your data',
+    body: 'HeyPlace saves everything on your device only — no cloud, no backup service. Use the <strong>Export</strong> button (⚙️ top right) to save a copy before switching devices or browsers. Cloud sync is on the roadmap — but for now, your backup is in your hands.'
+  },
+  {
     id: 'notif-2026-06-17',
     date: 'June 17, 2026',
     title: '🎉 Welcome to HeyPlace!',
