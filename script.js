@@ -855,16 +855,15 @@ function processCSV(text, filenameContext) {
         if (!customFolders.includes(filenameContext)) {
             customFolders.push(filenameContext);
         }
-        const filenameStatusMap = {
-            'want to go': 'Want to Go',
-            'starred places': 'Favourite',
-            'favorites': 'Favourite',
-            'favourites': 'Favourite',
-            'done': 'Been There',
-            'visited': 'Been There',
-            'been there': 'Been There',
-        };
-        const autoStatus = filenameStatusMap[filenameContext.trim().toLowerCase()] || 'Unsorted';
+        const filenameStatusRules = [
+            { keywords: ['want to go'],                 status: 'Want to Go' },
+            { keywords: ['starred places'],             status: 'Favourite'  },
+            { keywords: ['favorites', 'favourites'],    status: 'Favourite'  },
+            { keywords: ['visited', 'been there', 'done'], status: 'Been There' },
+        ];
+        const fnLower = filenameContext.trim().toLowerCase();
+        const matchedRule = filenameStatusRules.find(r => r.keywords.some(k => fnLower.includes(k)));
+        const autoStatus = matchedRule ? matchedRule.status : 'Unsorted';
         triageData[placeId] = {
             category: detectCategory(name, address),
             status: autoStatus,
