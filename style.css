@@ -1402,9 +1402,19 @@ body {
         border-top: none;
         border-right: 1px solid var(--border);
         border-bottom: none;
-        overflow-y: auto;
+        overflow-y: hidden;
+        display: flex;
+        flex-direction: column;
         z-index: 100;
         box-shadow: none;
+    }
+    .sidebar-scroll-body {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 0;
+    }
+    .sidebar-footer {
+        flex-shrink: 0;
     }
     .drawer-overlay { display: none !important; }
     .sheet-handle { display: none; }
