@@ -727,6 +727,25 @@ function initMap() {
     populateDropdowns();
     renderFoldersList();
 
+    // One-time migration: re-detect country for any place whose stored country
+    // doesn't match what the address says (catches manually relocated places).
+    const MIGRATION_KEY = 'country_recheck_v1';
+    if (!localStorage.getItem(MIGRATION_KEY)) {
+        allPlaces.forEach(p => {
+            if (!p.country) return;
+            const m = matchCountryFromAddress(p.address);
+            // If address now resolves to a different country, or place has
+            // coordinates but address gave no country, force a re-check.
+            if ((m && m.name !== p.country) || (!m && (p.lat !== 0 || p.lng !== 0))) {
+                delete p.country;
+                delete p.countryCode;
+                countryTried.delete(p.id);
+            }
+        });
+        saveState();
+        localStorage.setItem(MIGRATION_KEY, '1');
+    }
+
     if (allPlaces.length > 0) {
         applyFiltersAndRender();
         fitMapToBounds();
