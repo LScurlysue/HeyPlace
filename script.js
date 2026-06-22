@@ -729,14 +729,16 @@ function initMap() {
 
     // One-time migration: re-detect country for any place whose stored country
     // doesn't match what the address says (catches manually relocated places).
-    const MIGRATION_KEY = 'country_recheck_v1';
+    const MIGRATION_KEY = 'country_recheck_v2';
     if (!localStorage.getItem(MIGRATION_KEY)) {
         allPlaces.forEach(p => {
             if (!p.country) return;
             const m = matchCountryFromAddress(p.address);
-            // If address now resolves to a different country, or place has
-            // coordinates but address gave no country, force a re-check.
-            if ((m && m.name !== p.country) || (!m && (p.lat !== 0 || p.lng !== 0))) {
+            // Only clear if the address explicitly names a DIFFERENT country.
+            // If address has no country match, keep the stored value — it may
+            // have come from a correct reverse-geocode and clearing it would
+            // cause a re-geocode from coordinates 0,0 for unpinned places.
+            if (m && m.name !== p.country) {
                 delete p.country;
                 delete p.countryCode;
                 countryTried.delete(p.id);
