@@ -729,19 +729,16 @@ function initMap() {
 
     // One-time migration: re-detect country for any place whose stored country
     // doesn't match what the address says (catches manually relocated places).
-    const MIGRATION_KEY = 'country_recheck_v2';
+    const MIGRATION_KEY = 'country_recheck_v3';
     if (!localStorage.getItem(MIGRATION_KEY)) {
+        // Re-verify country for all pinned places via reverse-geocode.
+        // This fixes any wrong country set from address-text matching (e.g. Brussels→China).
         allPlaces.forEach(p => {
-            if (!p.country) return;
-            const m = matchCountryFromAddress(p.address);
-            // Only clear if the address explicitly names a DIFFERENT country.
-            // If address has no country match, keep the stored value — it may
-            // have come from a correct reverse-geocode and clearing it would
-            // cause a re-geocode from coordinates 0,0 for unpinned places.
-            if (m && m.name !== p.country) {
+            if (p.lat !== 0 || p.lng !== 0) {
                 delete p.country;
                 delete p.countryCode;
                 countryTried.delete(p.id);
+                addressTried.delete(p.id);
             }
         });
         saveState();
@@ -2858,6 +2855,7 @@ function matchCountryFromAddress(address) {
 // Reverse-geocode queue for places missing country and/or address
 const countryQueue = [];
 const countryTried = new Set();
+const addressTried = new Set();
 let countryQueueRunning = false;
 
 function buildAddressFromNominatim(a) {
@@ -2903,19 +2901,24 @@ function tagCountries() {
         const needsCountry = !p.country;
         const needsAddress = !p.address || p.address.trim() === '';
         if (!needsCountry && !needsAddress) return;
+        const hasPinnedLocation = p.lat !== 0 || p.lng !== 0;
         if (needsCountry) {
-            const m = matchCountryFromAddress(p.address);
-            if (m) {
-                p.country = m.name;
-                p.countryCode = m.code;
-                changed = true;
+            if (hasPinnedLocation) {
+                // Prefer reverse-geocoding for pinned places — more accurate than address text
+                if (!countryTried.has(p.id)) {
+                    countryTried.add(p.id);
+                    if (needsAddress) addressTried.add(p.id);
+                    countryQueue.push(p);
+                }
+            } else {
+                // No coordinates — fall back to reading address text
+                const m = matchCountryFromAddress(p.address);
+                if (m) { p.country = m.name; p.countryCode = m.code; changed = true; }
             }
-        }
-        if ((needsCountry && !p.country) || needsAddress) {
-            if ((p.lat !== 0 || p.lng !== 0) && !countryTried.has(p.id)) {
-                countryTried.add(p.id);
-                countryQueue.push(p);
-            }
+        } else if (needsAddress && hasPinnedLocation && !addressTried.has(p.id)) {
+            // Has country already but missing address — queue just for address lookup
+            addressTried.add(p.id);
+            countryQueue.push(p);
         }
     });
     if (changed) saveState();
