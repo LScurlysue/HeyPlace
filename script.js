@@ -2898,7 +2898,7 @@ function populateCountryFilter() {
     allPlaces.forEach(p => {
         if (p.country) counts[p.country] = (counts[p.country] || 0) + 1;
     });
-    const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    const sorted = Object.keys(counts).sort((a, b) => a.localeCompare(b));
     select.innerHTML = `<option value="All">🌍 All Countries (${sorted.length})</option>`;
     sorted.forEach(name => {
         const code = allPlaces.find(p => p.country === name)?.countryCode;
