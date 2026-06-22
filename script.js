@@ -1094,6 +1094,15 @@ function processCSV(text, filenameContext) {
         // address column) — mirror it into the address field too.
         if (!address && looksLikeAddress(name)) address = name;
 
+        // Google Maps URLs encode the original place name in the path
+        // (e.g. /maps/place/Riquewihr/data=...) regardless of the user's
+        // language, so use it for geocoding when the CSV title looks like it
+        // may be a translation (non-latin characters or mismatches).
+        const urlNameMatch = url.match(/\/maps\/place\/([^/]+)\/data=/);
+        const geocodeName = urlNameMatch
+            ? decodeURIComponent(urlNameMatch[1].replace(/\+/g, ' '))
+            : name;
+
         const isDuplicate = allPlaces.some(p =>
             p.name.toLowerCase().trim() === name.toLowerCase().trim() &&
             triageData[p.id]?.folder === filenameContext
@@ -1138,7 +1147,7 @@ function processCSV(text, filenameContext) {
         // No coordinates — add as unpinned placeholder, then geocode via queue
         allPlaces.push({ id: placeId, name, address, url, lat: 0, lng: 0, dateAdded: Date.now() });
 
-        geocodePlace(name, (result) => {
+        geocodePlace(geocodeName, (result) => {
             if (result) {
                 const idx = allPlaces.findIndex(p => p.id === placeId);
                 if (idx >= 0) {
