@@ -52,24 +52,251 @@ function textHasWord(text, word) {
     return new RegExp(`(?<![\\p{L}\\p{N}])${esc}(?![\\p{L}\\p{N}])`, 'iu').test(text);
 }
 
-// Auto-category keyword detection
+// Auto-category keyword detection — EN / FR / DE / ES / IT / NL / PT
 const CATEGORY_RULES = [
-        { cat: 'Hotel',               words: ['hotel','inn','hostel','auberge','b&b','bed and breakfast','lodge','motel','guesthouse','pension','resort','riad'] },
-        { cat: 'Restaurant',          words: ['restaurant','restaurante','ristorante','brasserie','bistro','pizzeria','trattoria','sushi','steakhouse','tavern','eatery','diner','grill','cantina','bodega','kebab','burger','noodle','ramen','barbeque','bbq','creperie','crêperie','winery','brewery','lunch','lunchroom'] },
-        { cat: 'Café / Bar',          words: ['café','cafe','coffee','tea room','tearoom','patisserie','pâtisserie','bakery','boulangerie','bar','pub','tavern','cocktail','lounge','wine bar','brasserie café','kiosk','brunch','breakfast'] },
-        { cat: 'Museum / Gallery',    words: ['museum','musée','gallery','galerie','exhibition','art center','moma','louvre','tate','guggenheim','kunsthalle'] },
-        { cat: 'Monument / Landmark', words: ['castle','château','palace','cathedral','church','basilica','abbey','chapel','mosque','temple','synagogue','monument','memorial','statue','tower','fort','ruins','archaeological','heritage'] },
-        { cat: 'Activity',            words: ['hiking','kayak','surf','dive','climb','zipline','tour','walk','cycle','bike','ski','snowboard','escape room','cooking class','workshop','boat','sailing'] },
-        { cat: 'Playground',          words: ['playground','play area','jungle gym','splash pad','play park','kids park','spielplatz','aire de jeux'] },
-        { cat: 'Beach',               words: ['beach','plage','strand','cove','bay','costa','praia'] },
-        { cat: 'Nature',              words: ['park','garden','forest','lake','waterfall','canyon','valley','reserve','national park','botanical','jardin','nature'] },
-        { cat: 'Viewpoint',           words: ['viewpoint','belvedere','mirador','panorama','lookout','observation','terrace','rooftop view'] },
-        { cat: 'Market',              words: ['market','marché','mercado','bazaar','souk','flea market','farmers market','brocante'] },
-        { cat: 'Spa / Wellness',      words: ['spa','wellness','thermal','hammam','sauna','massage','yoga','retreat','fitness'] },
-        { cat: 'Entertainment',       words: ['cinema','theatre','theater','concert','stadium','arena','zoo','aquarium','theme park','amusement','circus','casino','bowling','escape'] },
-        { cat: 'Shopping',            words: ['shopping','mall','boutique','shop','store','outlet','market street','supermarket'] },
-        { cat: 'Parking / Fuel',      words: ['parking','garage','petrol','fuel','gas station','station service'] },
-        { cat: 'City / Region',       words: ['city','town','village','district','neighbourhood','quarter','arrondissement','region'] },
+    { cat: 'Hotel', words: [
+        // EN
+        'hotel','inn','hostel','lodge','motel','guesthouse','resort','bed and breakfast','b&b',
+        // FR
+        'hôtel','auberge','pension','gîte','chambre d\'hôtes',
+        // DE
+        'gasthof','gasthaus','herberge','unterkunft',
+        // ES
+        'parador','posada','hospedería','albergue',
+        // IT
+        'ostello','albergo','pensione','locanda',
+        // NL
+        'herberg',
+        // PT
+        'pousada',
+        // Universal
+        'riad','chalet','aparthotel',
+    ]},
+    { cat: 'Restaurant', words: [
+        // EN
+        'restaurant','diner','eatery','steakhouse','grill','tavern','lunchroom',
+        // FR
+        'restaurante','brasserie','bistro','bistrot','rôtisserie','crêperie','creperie','friterie','frituur',
+        // DE
+        'gaststätte','gasthaus','speiselokal','wirtshaus','brauhaus',
+        // ES
+        'restaurante','asador','marisqueria','tasca','mesón',
+        // IT
+        'ristorante','trattoria','osteria','pizzeria','braceria',
+        // NL
+        'eetcafé','eetcafe',
+        // PT
+        'churrasqueira','marisqueira',
+        // Universal
+        'sushi','kebab','burger','noodle','ramen','bbq','barbeque','wok','tapas','cantina','bodega',
+        'buffet','bufet','smorgasbord','all you can eat',
+        'fritten','friet','frites','frituur','friterie','snackbar','imbiss','bratwurst','currywurst',
+    ]},
+    { cat: 'Café / Bar', words: [
+        // EN
+        'cafe','coffee','tearoom','tea room','bakery','bar','pub','lounge','cocktail','wine bar','brunch',
+        // FR
+        'café','pâtisserie','patisserie','boulangerie','salon de thé','kiosque',
+        // DE
+        'kaffee','bäckerei','konditorei','kneipe','biergarten','weinbar',
+        // ES
+        'cafetería','cafeteria','cervecería','taberna','vinoteca',
+        // IT
+        'caffè','caffe','pasticceria','enoteca','osteria','gelateria',
+        // NL
+        'brouwerij','koffiehuis',
+        // PT
+        'pastelaria','cervejaria','taberna',
+        // Universal
+        'espresso','cappuccino','smoothie','juice bar','tea house',
+    ]},
+    { cat: 'Museum / Gallery', words: [
+        // EN
+        'museum','gallery','exhibition','art center','art centre',
+        // FR
+        'musée','galerie','exposition',
+        // DE
+        'museum','galerie','kunsthalle','ausstellung',
+        // ES
+        'museo','galería',
+        // IT
+        'museo','galleria','pinacoteca',
+        // NL
+        'museum','galerij',
+        // PT
+        'museu','galeria',
+        // Famous
+        'louvre','tate','guggenheim','moma','rijksmuseum','prado','uffizi',
+    ]},
+    { cat: 'Monument / Landmark', words: [
+        // EN
+        'castle','palace','cathedral','church','basilica','abbey','chapel','mosque','temple','synagogue',
+        'monument','memorial','statue','tower','fort','fortress','ruins','archaeological','heritage','citadel',
+        // FR
+        'château','cathédrale','église','abbaye','chapelle','mosquée','synagogue','forteresse','tour',
+        'basilique','mémorial','patrimoine',
+        // DE
+        'schloss','burg','dom','kirche','kloster','kapelle','moschee','festung','turm','denkmal',
+        // ES
+        'castillo','catedral','iglesia','basílica','abadía','capilla','mezquita','sinagoga','fortaleza',
+        'torre','ruinas','palacio','alcázar',
+        // IT
+        'castello','cattedrale','chiesa','basilica','abbazia','cappella','moschea','sinagoga','fortezza',
+        'torre','rovine','palazzo','duomo',
+        // NL
+        'kasteel','kerk','abdij','kapel','toren','ruïne',
+        // PT
+        'castelo','catedral','igreja','basílica','abadia','mesquita','torre','ruínas',
+        // Universal
+        'maginot','ligne','bunker','ouvrage','hackenberg',
+    ]},
+    { cat: 'Spa / Wellness', words: [
+        // EN
+        'spa','wellness','sauna','massage','yoga','retreat','fitness','thermal bath',
+        // FR
+        'thermes','bains','hammam','bien-être',
+        // DE
+        'therme','bad','thermalbad','wellnesshotel',
+        // ES
+        'balneario','termas','baños termales',
+        // IT
+        'terme','terme','stabilimento termale',
+        // Universal
+        'hammam','onsen','hydrotherapy','thalasso',
+        // Specific patterns
+        'qc terme','qc san',
+    ]},
+    { cat: 'Beach', words: [
+        // EN
+        'beach','cove','bay',
+        // FR
+        'plage','baie',
+        // DE
+        'strand','bucht',
+        // ES
+        'playa','bahía',
+        // IT
+        'spiaggia','baia',
+        // NL
+        'strand',
+        // PT
+        'praia','baía',
+        // Universal
+        'costa','lido',
+    ]},
+    { cat: 'Nature', words: [
+        // EN
+        'park','garden','forest','lake','waterfall','canyon','valley','reserve','national park','botanical',
+        'nature','gorge','glacier','cave','grotto','cliff','dune','volcano',
+        // FR
+        'parc','jardin','forêt','lac','cascade','gorges','réserve','grotte','falaise',
+        // DE
+        'wald','see','wasserfall','schlucht','naturpark','garten','grotte','felsen',
+        // ES
+        'parque','jardín','bosque','lago','cascada','cañón','reserva','cueva','acantilado',
+        // IT
+        'parco','giardino','bosco','lago','cascata','canyon','riserva','grotta','scogliera',
+        // NL
+        'bos','meer','waterval','natuurpark','tuin',
+        // PT
+        'parque','jardim','floresta','lago','cascata','reserva','gruta',
+    ]},
+    { cat: 'Viewpoint', words: [
+        // EN
+        'viewpoint','lookout','observation','panorama','rooftop view',
+        // FR
+        'belvédère','belvedere','panorama','point de vue',
+        // DE
+        'aussichtspunkt','aussichtsturm','aussicht',
+        // ES
+        'mirador','panorámica',
+        // IT
+        'belvedere','panorama','terrazza panoramica',
+        // NL
+        'uitkijkpunt','panorama',
+        // PT
+        'miradouro','panorâmica',
+    ]},
+    { cat: 'Market', words: [
+        // EN
+        'market','flea market','farmers market',
+        // FR
+        'marché','brocante','vide-grenier',
+        // DE
+        'markt','flohmarkt','wochenmarkt',
+        // ES
+        'mercado','rastro',
+        // IT
+        'mercato','fiera',
+        // NL
+        'markt','vlooienmarkt',
+        // PT
+        'mercado','feira',
+        // Universal
+        'bazaar','bazar','souk','souq',
+    ]},
+    { cat: 'Activity', words: [
+        // EN
+        'hiking','kayak','surf','dive','climb','zipline','cycle','bike','ski','snowboard',
+        'sailing','boat','tour','walk','escape room','cooking class','workshop',
+        // FR
+        'randonnée','escalade','vélo','voile','plongée','accrobranche',
+        // DE
+        'wandern','klettern','radfahren','segeln','tauchen',
+        // ES
+        'senderismo','escalada','ciclismo','vela','buceo',
+        // IT
+        'escursione','arrampicata','ciclismo','vela','immersione',
+        // Universal
+        'funicular','téléphérique','seilbahn','cable car',
+    ]},
+    { cat: 'Playground', words: [
+        'playground','play area','jungle gym','splash pad',
+        'spielplatz','aire de jeux','parque infantil','parco giochi','speeltuin',
+    ]},
+    { cat: 'Entertainment', words: [
+        // EN
+        'cinema','theatre','theater','concert','stadium','arena','zoo','aquarium',
+        'theme park','amusement','circus','casino','bowling',
+        // FR
+        'cinéma','théâtre','stade','parc d\'attractions',
+        // DE
+        'kino','theater','stadion','freizeitpark','vergnügungspark',
+        // ES
+        'cine','teatro','estadio','parque de atracciones',
+        // IT
+        'cinema','teatro','stadio','parco divertimenti',
+        // NL
+        'bioscoop','theater','stadion','pretpark',
+    ]},
+    { cat: 'Shopping', words: [
+        // EN
+        'shopping','mall','boutique','shop','store','outlet','supermarket',
+        // FR
+        'boutique','magasin','centre commercial','galeries',
+        // DE
+        'laden','geschäft','einkaufszentrum','kaufhaus',
+        // ES
+        'tienda','centro comercial','galería comercial',
+        // IT
+        'negozio','centro commerciale','galleria',
+        // NL
+        'winkel','winkelcentrum',
+        // PT
+        'loja','centro comercial',
+    ]},
+    { cat: 'Parking / Fuel', words: [
+        'parking','garage','petrol','fuel','gas station',
+        'station service','tankstelle','gasolinera','benzina','parkeergarage',
+    ]},
+    { cat: 'City / Region', words: [
+        'city','town','village','district','neighbourhood','quarter','arrondissement','region',
+        'ville','quartier','village','commune',
+        'stadt','stadtteil','gemeinde','dorf',
+        'ciudad','pueblo','barrio','municipio',
+        'città','paese','quartiere','comune',
+        'stad','dorp','gemeente','wijk',
+    ]},
 ];
 
 // True if a string looks like a street address (e.g. "22 Rue Antoine Meyer, 2153 Luxembourg")
@@ -80,10 +307,33 @@ function looksLikeAddress(str) {
     return /^\d+[\s,]/.test(s) || /\b\d{4,6}\b/.test(s);
 }
 
-function detectCategory(name, address) {
+// Folder names that strongly imply a category — used as a fallback when
+// keyword detection on the place name returns 'Other'.
+const FOLDER_CATEGORY_HINTS = [
+    { cat: 'Restaurant',          words: ['restaurant','restaurante','ristorante','food','dining','dinner','lunch','eat'] },
+    { cat: 'Café / Bar',          words: ['cafe','café','bar','coffee','pub','drink'] },
+    { cat: 'Hotel',               words: ['hotel','stay','accommodation','sleep','hostel'] },
+    { cat: 'Museum / Gallery',    words: ['museum','gallery','art','musée','museo'] },
+    { cat: 'Monument / Landmark', words: ['monument','landmark','heritage','castle','church','cathedral'] },
+    { cat: 'Spa / Wellness',      words: ['spa','wellness','therme','thermal'] },
+    { cat: 'Beach',               words: ['beach','plage','strand','playa'] },
+    { cat: 'Nature',              words: ['nature','park','garden','hike','hiking','forest'] },
+    { cat: 'Activity',            words: ['activity','activities','tour','adventure','sport'] },
+    { cat: 'Shopping',            words: ['shop','shopping','boutique','outlet','store'] },
+    { cat: 'Entertainment',       words: ['entertainment','fun','show','cinema','theatre','theater'] },
+];
+
+function detectCategory(name, address, folderName) {
     const text = (name + ' ' + (address || '')).toLowerCase();
     for (const rule of CATEGORY_RULES) {
         if (rule.words.some(w => textHasWord(text, w))) return rule.cat;
+    }
+    // Fallback: infer from folder name
+    if (folderName) {
+        const folderText = folderName.toLowerCase();
+        for (const hint of FOLDER_CATEGORY_HINTS) {
+            if (hint.words.some(w => folderText.includes(w))) return hint.cat;
+        }
     }
     return 'Other';
 }
@@ -607,7 +857,7 @@ Array.from(placemarks).forEach((pm, i) => {
         customFolders.push(contextName);
     }
     triageData[placeId] = {
-        category: detectCategory(name, address),
+        category: detectCategory(name, address, contextName),
         status: 'Unsorted',
         folder: contextName
     };
@@ -865,7 +1115,7 @@ function processCSV(text, filenameContext) {
         const matchedRule = filenameStatusRules.find(r => r.keywords.some(k => fnLower.includes(k)));
         const autoStatus = matchedRule ? matchedRule.status : 'Unsorted';
         triageData[placeId] = {
-            category: detectCategory(name, address),
+            category: detectCategory(name, address, filenameContext),
             status: autoStatus,
             folder: filenameContext
         };
@@ -898,6 +1148,11 @@ function processCSV(text, filenameContext) {
                     allPlaces[idx].lng = rLng;
                     if (isFarFromFolder(filenameContext, placeId, rLat, rLng)) {
                         triageData[placeId].needsReview = true;
+                    }
+                    // Upgrade category from OSM data if still on the keyword-guessed value
+                    const osmCat = osmTypeToCategory(result.class, result.type);
+                    if (osmCat && triageData[placeId] && !triageData[placeId].lastModified) {
+                        triageData[placeId].category = osmCat;
                     }
                     saveState();
                     applyFiltersAndRender();
@@ -947,7 +1202,7 @@ function processGeocodedJSON(data, folderName) {
         });
 
         triageData[placeId] = {
-            category: detectCategory(name, address),
+            category: detectCategory(name, address, folderName),
             status: item.status || 'Unsorted',
             folder: folderName
         };
@@ -2696,8 +2951,8 @@ function runOsmCheckQueue() {
             const finalCat = poiCat || adminCat;
             if (finalCat) {
                 const t = triageData[place.id];
-                // Re-check it's still untouched by the user
-                if (t && t.category === 'Other' && t.status === 'Unsorted') {
+                // Only apply if the user has never manually edited this place
+                if (t && t.category === 'Other' && !t.lastModified) {
                     t.category = finalCat;
                 }
             }
@@ -2733,12 +2988,33 @@ function scheduleOsmChecks() {
         if (p.osmChecked || osmCheckTried.has(p.id)) return;
         if (p.lat === 0 && p.lng === 0) return;
         const t = triageData[p.id];
-        if (!t || t.category !== 'Other' || t.status !== 'Unsorted') return;
+        if (!t) return;
+        // Skip anything the user has manually edited
+        if (t.lastModified) return;
+        // Queue places that are uncategorized OR still on the keyword-guessed default
+        if (t.category !== 'Other') return;
         osmCheckTried.add(p.id);
         osmCheckQueue.push(p);
     });
     if (osmCheckQueue.length > 0 && !osmCheckRunning) runOsmCheckQueue();
 }
+
+// One-time pass: re-run keyword detection on all places never touched by the user.
+// Catches places imported before the multilingual keyword expansion.
+(function repairKeywordCategories() {
+    if (localStorage.getItem('mapfolio_kwfix_v1')) return;
+    let changed = 0;
+    allPlaces.forEach(p => {
+        const t = triageData[p.id];
+        if (!t || t.lastModified) return; // user touched it — leave alone
+        if (t.category !== 'Other') return; // already has a real category
+        const fresh = detectCategory(p.name, p.address, t.folder);
+        if (fresh !== 'Other') { t.category = fresh; changed++; }
+    });
+    if (changed) { saveState(); }
+    localStorage.setItem('mapfolio_kwfix_v1', 'true');
+    if (changed) showImportToast(`Auto-fixed ${changed} place${changed !== 1 ? 's' : ''} with smarter categories.`);
+})();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STATS PAGE — countries, categories, statuses, travel progress.
