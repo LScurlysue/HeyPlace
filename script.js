@@ -1,3 +1,17 @@
+// Version check — fetches version.json fresh from server (bypasses cache)
+// and shows an update banner if the server version is newer than what's running.
+const APP_VERSION = '20250622.1';
+(function checkForUpdate() {
+    fetch('version.json?t=' + Date.now())
+        .then(r => r.json())
+        .then(data => {
+            if (data.version && data.version !== APP_VERSION) {
+                document.getElementById('update-banner')?.classList.add('visible');
+            }
+        })
+        .catch(() => {});
+})();
+
 // State
 let allPlaces = JSON.parse(localStorage.getItem('mapfolio_places')) || [];
 let triageData = JSON.parse(localStorage.getItem('mapfolio_triage')) || {};

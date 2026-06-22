@@ -936,6 +936,34 @@ body {
 }
 .import-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 
+/* ─── Update banner ───────────────────────────────────────────────────── */
+#update-banner {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #1a1a2e;
+    color: #fff;
+    font-size: 0.875rem;
+    padding: 0.6rem 1rem;
+    text-align: center;
+    z-index: 99999;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: center;
+}
+#update-banner.visible { display: flex; }
+#update-banner button {
+    background: #f5a623;
+    color: #1a1a2e;
+    border: none;
+    border-radius: 2rem;
+    padding: 0.3rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
 /* ─── Top bar ─────────────────────────────────────────────────────────── */
 .topbar { display: none; }
 
