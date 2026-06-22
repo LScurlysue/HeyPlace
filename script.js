@@ -2846,10 +2846,21 @@ function matchCountryFromAddress(address) {
     return best;
 }
 
-// Reverse-geocode queue for places whose address didn't reveal a country
+// Reverse-geocode queue for places missing country and/or address
 const countryQueue = [];
 const countryTried = new Set();
 let countryQueueRunning = false;
+
+function buildAddressFromNominatim(a) {
+    const parts = [
+        a.road || a.pedestrian || a.footway || a.path,
+        a.house_number,
+        a.village || a.town || a.city || a.municipality,
+        a.state || a.county,
+        a.country
+    ].filter(Boolean);
+    return parts.join(', ');
+}
 
 function runCountryQueue() {
     if (countryQueue.length === 0) { countryQueueRunning = false; return; }
@@ -2857,7 +2868,7 @@ function runCountryQueue() {
     const place = countryQueue.shift();
     (async () => {
         try {
-            const url = `https://nominatim.openstreetmap.org/reverse?format=json&zoom=3&lat=${place.lat}&lon=${place.lng}`;
+            const url = `https://nominatim.openstreetmap.org/reverse?format=json&zoom=14&lat=${place.lat}&lon=${place.lng}`;
             const res = await fetchWithTimeout(url, { headers: { 'Accept-Language': 'en' } });
             const data = await res.json();
             const code = data?.address?.country_code;
@@ -2865,9 +2876,14 @@ function runCountryQueue() {
                 const known = COUNTRIES.find(c => c[0] === code.toUpperCase());
                 place.country = known ? known[1] : (data.address.country || code.toUpperCase());
                 place.countryCode = code.toUpperCase();
-                saveState();
-                populateCountryFilter();
             }
+            if (!place.address || place.address.trim() === '') {
+                const built = buildAddressFromNominatim(data?.address || {});
+                if (built) place.address = built;
+            }
+            saveState();
+            populateCountryFilter();
+            applyFiltersAndRender();
         } catch (e) {}
     })().finally(() => setTimeout(runCountryQueue, 1200));
 }
@@ -2875,15 +2891,22 @@ function runCountryQueue() {
 function tagCountries() {
     let changed = false;
     allPlaces.forEach(p => {
-        if (p.country) return;
-        const m = matchCountryFromAddress(p.address);
-        if (m) {
-            p.country = m.name;
-            p.countryCode = m.code;
-            changed = true;
-        } else if ((p.lat !== 0 || p.lng !== 0) && !countryTried.has(p.id)) {
-            countryTried.add(p.id);
-            countryQueue.push(p);
+        const needsCountry = !p.country;
+        const needsAddress = !p.address || p.address.trim() === '';
+        if (!needsCountry && !needsAddress) return;
+        if (needsCountry) {
+            const m = matchCountryFromAddress(p.address);
+            if (m) {
+                p.country = m.name;
+                p.countryCode = m.code;
+                changed = true;
+            }
+        }
+        if ((needsCountry && !p.country) || needsAddress) {
+            if ((p.lat !== 0 || p.lng !== 0) && !countryTried.has(p.id)) {
+                countryTried.add(p.id);
+                countryQueue.push(p);
+            }
         }
     });
     if (changed) saveState();
