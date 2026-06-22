@@ -1952,10 +1952,15 @@ document.getElementById('save-coords-btn').addEventListener('click', () => {
         allPlaces[matchedIdx].lng = inputtedLng;
         allPlaces[matchedIdx].name = document.getElementById('triage-title').value;
         allPlaces[matchedIdx].address = document.getElementById('triage-address').value;
+        // Re-detect country from the new address/location
+        delete allPlaces[matchedIdx].country;
+        delete allPlaces[matchedIdx].countryCode;
+        countryTried.delete(allPlaces[matchedIdx].id);
         touchPlace(allPlaces[matchedIdx]);
     }
 
     updateTriageData();
+    tagCountries();
     saveState();
     applyFiltersAndRender();
 
