@@ -18,7 +18,7 @@ const fileUpload = document.getElementById('file-upload');
 
 const categoryConfig = {
     'City / Region':       { emoji: '🏙️', cssClass: 'cat-City' },
-    'Hotel':               { emoji: '🏨', cssClass: 'cat-Hotel' },
+    'Hotel':               { emoji: '🛏️', cssClass: 'cat-Hotel' },
     'Restaurant':          { emoji: '🍽️', cssClass: 'cat-Restaurant' },
     'Café / Bar':          { emoji: '☕', cssClass: 'cat-Cafe' },
     'Museum / Gallery':    { emoji: '🏛️', cssClass: 'cat-Museum' },
