@@ -891,9 +891,18 @@ Array.from(placemarks).forEach((pm, i) => {
     if (!customFolders.includes(contextName)) {
         customFolders.push(contextName);
     }
+    const fnLowerKmz = contextName.toLowerCase();
+    const kmzStatusRules = [
+        { keywords: ['want to go'],                 status: 'Want to Go' },
+        { keywords: ['starred places'],             status: 'Favourite'  },
+        { keywords: ['favorites', 'favourites'],    status: 'Favourite'  },
+        { keywords: ['visited', 'been there', 'done'], status: 'Been There' },
+        { keywords: ['loved', 'love it'],           status: 'Loved It'   },
+    ];
+    const kmzMatchedRule = kmzStatusRules.find(r => r.keywords.some(k => fnLowerKmz.includes(k)));
     triageData[placeId] = {
         category: detectCategory(name, address, contextName),
-        status: 'Unsorted',
+        status: kmzMatchedRule ? kmzMatchedRule.status : 'Unsorted',
         folder: contextName
     };
 
