@@ -477,10 +477,10 @@ body {
 }
 .unpinned-header {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
     align-items: center;
-    gap: 0.4rem 0.6rem;
+    gap: 0.5rem;
     padding: 0.55rem 0.85rem;
     background: #fffbeb;
     cursor: pointer;
@@ -493,19 +493,22 @@ body {
     background: #451a03;
     color: #fcd34d;
 }
-.unpinned-header-title { flex: 1 1 auto; min-width: 0; }
+.unpinned-header-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .unpinned-header-actions {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.5rem;
     flex-shrink: 0;
 }
 .unpinned-count {
-    background: #f59e0b;
-    color: #fff;
-    border-radius: 999px;
-    padding: 0.1rem 0.5rem;
-    font-size: 0.75rem;
+    color: var(--status-amber);
+    font-size: 0.8rem;
     font-weight: 700;
     white-space: nowrap;
 }
