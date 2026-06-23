@@ -390,10 +390,17 @@ function touchTriage(id) {
 }
 
 function saveState() {
-    localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
-    localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
-    localStorage.setItem('mapfolio_folders', JSON.stringify(customFolders));
-    localStorage.setItem('mapfolio_custom_categories', JSON.stringify(customCategories));
+    try {
+        localStorage.setItem('mapfolio_places', JSON.stringify(allPlaces));
+        localStorage.setItem('mapfolio_triage', JSON.stringify(triageData));
+        localStorage.setItem('mapfolio_folders', JSON.stringify(customFolders));
+        localStorage.setItem('mapfolio_custom_categories', JSON.stringify(customCategories));
+    } catch (err) {
+        // Without this, a failed write (e.g. storage quota exceeded) fails
+        // silently and changes just vanish on the next reload with no clue why.
+        console.error('saveState failed:', err);
+        showImportToast('⚠️ Could not save — your browser storage may be full. Try exporting a backup and removing some places.');
+    }
 }
 
 // ── Backup & Restore ──────────────────────────────────────────────────────
@@ -837,7 +844,14 @@ if (fileUpload) {
                 else if (stars <= 2) status = 'Skip It';
             }
 
-            return { name, address: props.location?.address || '', url, lat, lng, status };
+            // When there's no separate address field, Google's "no location
+            // available" entries put a real street address straight into the
+            // name (e.g. "11 Rue d'Ernzen, 7615 Larochette, Luxembourg") —
+            // mirror it into address so it's usable for editing and geocoding.
+            let address = props.location?.address || '';
+            if (!address && looksLikeAddress(name)) address = name;
+
+            return { name, address, url, lat, lng, status };
         }).filter(f => f.name !== 'Unnamed Place' || (f.lat !== 0 && f.lng !== 0));
 
         if (normalized.some(f => f.status === 'NEEDS_SAVED_STATUS')) {
@@ -2052,16 +2066,24 @@ document.getElementById('unpinned-header').addEventListener('click', (e) => {
     list.classList.toggle('hidden');
 });
 
+let fixAllRunning = false;
 document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
     e.stopPropagation();
+    // Guards against a double-click/double-tap firing a second overlapping
+    // run before btn.disabled takes effect — two runs racing on the same
+    // counter is what made the progress number jump backwards.
+    if (fixAllRunning) return;
     const unpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
     if (unpinned.length === 0) return;
+    fixAllRunning = true;
     // Reset queue state in case a previous run got stuck
     geocodeQueue.length = 0;
     geocodeRunning = false;
     const btn = e.currentTarget;
+    const countEl = document.getElementById('unpinned-count');
     btn.disabled = true;
-    btn.textContent = `⏳ 0/${unpinned.length}`;
+    if (countEl) countEl.classList.add('hidden');
+    btn.textContent = `⏳ Fixing 0/${unpinned.length}`;
     let done = 0;
     unpinned.forEach(place => {
         // Mirror the triage panel logic: prefer address over name when available
@@ -2070,7 +2092,7 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
         const placeFolder = triageData[place.id]?.folder;
         geocodePlace(query, (result) => {
             done++;
-            btn.textContent = `⏳ ${done}/${unpinned.length}`;
+            btn.textContent = `⏳ Fixing ${done}/${unpinned.length}`;
             if (result) {
                 const idx = allPlaces.findIndex(p => p.id === place.id);
                 // Only write if the place still has no coordinates (don't overwrite manual fixes)
@@ -2088,13 +2110,17 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                     }
                 }
             }
-            // Save every 10 results so progress survives a reload
+            // Save every 10 results so progress survives a reload; re-render
+            // every result so "Showing X of Y" visibly moves during the run
+            // instead of looking frozen until everything finishes.
             if (done % 10 === 0) saveState();
+            applyFiltersAndRender();
             if (done === unpinned.length) {
                 saveState();
-                applyFiltersAndRender();
                 btn.disabled = false;
                 btn.textContent = '📍 Fix All';
+                if (countEl) countEl.classList.remove('hidden');
+                fixAllRunning = false;
                 showImportToast(`Geocoded ${unpinned.length} places`);
             }
         }, placeFolder);
