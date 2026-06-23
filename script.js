@@ -2605,6 +2605,17 @@ contactBtn && contactBtn.addEventListener('click', () => contactModal.classList.
 contactClose && contactClose.addEventListener('click', () => contactModal.classList.add('hidden'));
 contactBackdrop && contactBackdrop.addEventListener('click', () => contactModal.classList.add('hidden'));
 
+// Install app modal
+const installBtn = document.getElementById('install-btn');
+const installModal = document.getElementById('install-modal');
+const installClose = document.getElementById('install-modal-close');
+const installBackdrop = document.getElementById('install-modal-backdrop');
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+if (installBtn && !isStandalone) installBtn.classList.remove('hidden');
+installBtn && installBtn.addEventListener('click', () => installModal.classList.remove('hidden'));
+installClose && installClose.addEventListener('click', () => installModal.classList.add('hidden'));
+installBackdrop && installBackdrop.addEventListener('click', () => installModal.classList.add('hidden'));
+
 // Settings modal (Backup & Restore)
 const settingsModal = document.getElementById('settings-modal');
 const settingsClose = document.getElementById('settings-modal-close');

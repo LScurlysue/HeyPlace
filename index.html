@@ -58,6 +58,7 @@
             </div>
         </div>
         <div class="topbar-actions">
+            <button id="install-btn" class="topbar-icon-btn hidden" title="Add HeyPlace to your phone or desktop"><i class="ti ti-download" aria-hidden="true"></i></button>
             <button id="settings-btn" class="topbar-icon-btn" title="Backup & Restore"><i class="ti ti-settings" aria-hidden="true"></i></button>
             <button id="help-btn" class="topbar-icon-btn" title="How to use HeyPlace">?</button>
             <button id="contact-btn" class="topbar-icon-btn" title="Questions & suggestions"><i class="ti ti-message-circle" aria-hidden="true"></i></button>
@@ -257,6 +258,43 @@
                         <p>I built this because I wanted it to exist — and I'm sharing it in case you find it useful too. Thanks for being here 💛</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Install app modal -->
+    <div id="install-modal" class="help-modal hidden">
+        <div class="help-modal-backdrop" id="install-modal-backdrop"></div>
+        <div class="help-modal-sheet">
+            <div class="help-modal-handle"></div>
+            <div class="help-modal-header">
+                <h2>📲 Add HeyPlace to your phone or desktop</h2>
+                <button class="help-modal-close" id="install-modal-close">✕</button>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-section">
+                    <div class="help-section-icon"><i class="ti ti-device-mobile"></i></div>
+                    <div>
+                        <h3>On your phone</h3>
+                        <p><strong>1.</strong> Open <strong>heyplace.app</strong> in your browser.</p>
+                        <p><strong>2.</strong> iPhone (Safari): tap <strong>Share</strong> → "Add to Home Screen".<br>
+                        Chrome (Android): tap <strong>⋮</strong> → "Add to Home Screen".<br>
+                        Samsung Internet: tap the install icon in the address bar.</p>
+                        <p><strong>3.</strong> Tap <strong>Add</strong> — it appears on your home screen!</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <div class="help-section-icon"><i class="ti ti-device-laptop"></i></div>
+                    <div>
+                        <h3>On your computer</h3>
+                        <p><strong>1.</strong> Open <strong>heyplace.app</strong> in Chrome or Edge.</p>
+                        <p><strong>2.</strong> Click the <strong>install icon</strong> in the address bar.</p>
+                        <p><strong>3.</strong> Click <strong>Install</strong> — it opens like a real app!</p>
+                    </div>
+                </div>
+
+                <p style="text-align:center;color:#888;font-size:0.85rem;margin-top:0.5rem;">📍 heyplace.app — free · no account needed · no app store needed 💛</p>
             </div>
         </div>
     </div>
