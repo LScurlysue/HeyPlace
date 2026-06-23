@@ -2077,10 +2077,14 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                 if (idx !== -1 && allPlaces[idx].lat === 0 && allPlaces[idx].lng === 0) {
                     const rLat = parseFloat(result.lat);
                     const rLng = parseFloat(result.lon);
-                    allPlaces[idx].lat = rLat;
-                    allPlaces[idx].lng = rLng;
+                    // A match implausibly far from the rest of the folder is
+                    // likely the wrong place entirely — leave it unpinned and
+                    // flagged instead of dropping a wrong pin on the map.
                     if (isFarFromFolder(placeFolder, place.id, rLat, rLng)) {
                         triageData[place.id].needsReview = true;
+                    } else {
+                        allPlaces[idx].lat = rLat;
+                        allPlaces[idx].lng = rLng;
                     }
                 }
             }

@@ -477,8 +477,10 @@ body {
 }
 .unpinned-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 0.4rem 0.6rem;
     padding: 0.55rem 0.85rem;
     background: #fffbeb;
     cursor: pointer;
@@ -491,6 +493,13 @@ body {
     background: #451a03;
     color: #fcd34d;
 }
+.unpinned-header-title { flex: 1 1 auto; min-width: 0; }
+.unpinned-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
 .unpinned-count {
     background: #f59e0b;
     color: #fff;
@@ -498,6 +507,7 @@ body {
     padding: 0.1rem 0.5rem;
     font-size: 0.75rem;
     font-weight: 700;
+    white-space: nowrap;
 }
 .unpinned-hint {
     margin: 0;
@@ -1083,7 +1093,8 @@ body {
 }
 .welcome-popup.hidden { display: none; }
 .welcome-popup-box {
-    background: #fff;
+    background: var(--bg-panel);
+    color: var(--text-main);
     border-radius: 18px;
     padding: 2rem 1.75rem;
     max-width: 340px;
@@ -1098,7 +1109,7 @@ body {
 }
 .welcome-popup-box p {
     font-size: 0.9rem;
-    color: #444;
+    color: var(--text-muted);
     line-height: 1.5;
 }
 .welcome-popup-btn {
@@ -1113,6 +1124,14 @@ body {
     width: 100%;
 }
 .welcome-popup-btn:hover { background: #f5c400; }
+.welcome-popup-btn.saved-status-choice { margin-top: 1.25rem; }
+.welcome-popup-btn.saved-status-choice-secondary {
+    margin-top: 0.6rem;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 2px solid #ffde59;
+}
+.welcome-popup-btn.saved-status-choice-secondary:hover { background: var(--bg-main); }
 
 /* Notifications banner */
 .notif-banner {

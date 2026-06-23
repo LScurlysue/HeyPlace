@@ -267,9 +267,9 @@
         <div class="welcome-popup-box">
             <h2>⭐ About your starred places</h2>
             <p>Google doesn't tell us what "starred" means to you — it could be places you want to visit, or ones you've already been to and loved. How should we label these?</p>
-            <button class="welcome-popup-btn saved-status-choice" id="saved-status-want" data-status="Want to Go" style="margin-top:1.25rem;">🔵 I want to go there</button>
-            <button class="welcome-popup-btn saved-status-choice" id="saved-status-favourite" data-status="Favourite" style="margin-top:0.6rem;background:#fff;border:2px solid #ffde59;">⭐ These are my favourites</button>
-            <button class="welcome-popup-btn saved-status-choice" id="saved-status-been" data-status="Been There" style="margin-top:0.6rem;background:#fff;border:2px solid #ffde59;">🟡 I've already been there</button>
+            <button class="welcome-popup-btn saved-status-choice" id="saved-status-want" data-status="Want to Go">🔵 I want to go there</button>
+            <button class="welcome-popup-btn saved-status-choice saved-status-choice-secondary" id="saved-status-favourite" data-status="Favourite">⭐ These are my favourites</button>
+            <button class="welcome-popup-btn saved-status-choice saved-status-choice-secondary" id="saved-status-been" data-status="Been There">🟡 I've already been there</button>
         </div>
     </div>
 
@@ -570,9 +570,11 @@
 </section>
             <div id="unpinned-section" class="unpinned-section hidden">
                 <div id="unpinned-header" class="unpinned-header">
-                    <span>⚠️ Unpinned places</span>
-                    <span id="unpinned-count" class="unpinned-count">0</span>
-                    <button id="geocode-all-btn" title="Look up coordinates for all places below automatically (about 1 per second)" style="margin-left:auto;padding:2px 8px;font-size:11px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;white-space:nowrap;">📍 Fix All</button>
+                    <span class="unpinned-header-title">⚠️ Unpinned places</span>
+                    <div class="unpinned-header-actions">
+                        <span id="unpinned-count" class="unpinned-count">0</span>
+                        <button id="geocode-all-btn" title="Look up coordinates for all places below automatically (about 1 per second)" style="padding:2px 8px;font-size:11px;border-radius:6px;border:1px solid var(--status-amber);background:var(--status-amber);color:#fff;cursor:pointer;white-space:nowrap;">📍 Fix All</button>
+                    </div>
                 </div>
                 <p class="unpinned-hint">These places have no location yet. Tap <strong>📍 Fix All</strong> above to look them up automatically — it'll switch to <strong>⏳</strong> while it works and may take a minute. Or tap <strong>✏️</strong> next to a place below to enter coordinates by hand.</p>
                 <ul id="unpinned-list" class="unpinned-list hidden"></ul>
