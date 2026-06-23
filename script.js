@@ -817,16 +817,18 @@ if (fileUpload) {
             let lat = f.geometry?.coordinates?.[1] ?? 0;
             let lng = f.geometry?.coordinates?.[0] ?? 0;
             if ((lat === 0 && lng === 0) || isNaN(lat) || isNaN(lng)) {
-                // Try ?q=lat,lng from URL
-                const coordMatch = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)(?:&|$)/);
-                if (coordMatch) {
-                    lat = parseFloat(coordMatch[1]);
-                    lng = parseFloat(coordMatch[2]);
+                const urlCoords = extractCoordsFromUrl(url);
+                if (urlCoords) {
+                    lat = urlCoords.lat;
+                    lng = urlCoords.lng;
                 }
             }
 
             // --- Status from star rating (Reviews.json) ---
-            let status = 'Been There';
+            // Saved Places.json has no rating field — those are just starred/
+            // saved spots, and "starred" means different things to different
+            // people, so we ask once per import rather than guessing.
+            let status = 'NEEDS_SAVED_STATUS';
             const stars = props.five_star_rating_published;
             if (stars !== undefined) {
                 if (stars >= 5) status = 'Loved It';
@@ -837,6 +839,11 @@ if (fileUpload) {
 
             return { name, address: props.location?.address || '', url, lat, lng, status };
         }).filter(f => f.name !== 'Unnamed Place' || (f.lat !== 0 && f.lng !== 0));
+
+        if (normalized.some(f => f.status === 'NEEDS_SAVED_STATUS')) {
+            const chosenStatus = await askSavedPlacesStatus();
+            normalized.forEach(f => { if (f.status === 'NEEDS_SAVED_STATUS') f.status = chosenStatus; });
+        }
 
         processGeocodedJSON(normalized, folderName);
     }
@@ -920,20 +927,7 @@ Array.from(placemarks).forEach((pm, i) => {
     // No coordinates in the KML — geocode by name via the queue, like CSV/JSON imports
     if (finalLat === 0 && finalLng === 0) {
         geocodePlace(name, (result) => {
-            if (result) {
-                const idx = allPlaces.findIndex(p => p.id === placeId);
-                if (idx >= 0) {
-                    const rLat = parseFloat(result.lat);
-                    const rLng = parseFloat(result.lon);
-                    allPlaces[idx].lat = rLat;
-                    allPlaces[idx].lng = rLng;
-                    if (isFarFromFolder(contextName, placeId, rLat, rLng)) {
-                        triageData[placeId].needsReview = true;
-                    }
-                    saveState();
-                    applyFiltersAndRender();
-                }
-            }
+            if (result) applyGeocodeResult(placeId, result, contextName);
         }, contextName);
     }
 });
@@ -944,6 +938,40 @@ Array.from(placemarks).forEach((pm, i) => {
     fitMapToBounds();
     showImportToast(`KMZ Unpacked: Processed ${importedCount} non-duplicate pins.`);
 }
+// Google Maps URLs encode real coordinates in several different formats
+// depending on export type. Most "Saved Places" exports use the
+// `!3d<lat>!4d<lng>` pair inside the `data=` parameter — try that first
+// since it's the most common and most precise; fall back to the map-view
+// `/@lat,lng,zoom/` pattern and the `?q=lat,lng` pattern used elsewhere.
+function extractCoordsFromUrl(url) {
+    if (!url || url === '#') return null;
+    let m = url.match(/!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/);
+    if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    m = url.match(/\/@(-?\d+\.?\d*),(-?\d+\.?\d*),\d+z\//);
+    if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    m = url.match(/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)(?:&|$)/);
+    if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    return null;
+}
+
+// Shows the "what does starred mean to you" prompt and resolves with the
+// status the user picked. Resolves to 'Want to Go' if dismissed without a
+// choice (shouldn't normally happen since there's no backdrop-close wired).
+function askSavedPlacesStatus() {
+    return new Promise(resolve => {
+        const modal = document.getElementById('saved-status-modal');
+        modal.classList.remove('hidden');
+        const buttons = modal.querySelectorAll('.saved-status-choice');
+        function onChoice(e) {
+            const status = e.currentTarget.dataset.status;
+            buttons.forEach(b => b.removeEventListener('click', onChoice));
+            modal.classList.add('hidden');
+            resolve(status);
+        }
+        buttons.forEach(b => b.addEventListener('click', onChoice));
+    });
+}
+
 function readFileAsText(file) {
     return new Promise((resolve) => {
         const reader = new FileReader();
@@ -1042,6 +1070,26 @@ function isFarFromFolder(folderName, placeId, lat, lng) {
     const centroid = getFolderCentroid(folderName, placeId);
     if (!centroid) return false;
     return haversineKm({ lat, lng }, centroid) > NEEDS_REVIEW_DISTANCE_KM;
+}
+
+// Applies a geocode result to a place. Name-only geocoding can match the
+// wrong place entirely (a generic name matching a same-named spot on another
+// continent) — when the result lands implausibly far from the rest of the
+// folder, don't plot the wrong pin on the map; leave it unpinned and flagged
+// so the user can fix it manually instead of seeing a scattered, wrong dot.
+function applyGeocodeResult(placeId, result, folderName) {
+    const idx = allPlaces.findIndex(p => p.id === placeId);
+    if (idx < 0) return;
+    const rLat = parseFloat(result.lat);
+    const rLng = parseFloat(result.lon);
+    if (isFarFromFolder(folderName, placeId, rLat, rLng)) {
+        triageData[placeId].needsReview = true;
+    } else {
+        allPlaces[idx].lat = rLat;
+        allPlaces[idx].lng = rLng;
+    }
+    saveState();
+    applyFiltersAndRender();
 }
 
 function fetchWithTimeout(url, options = {}, ms = 5000) {
@@ -1172,10 +1220,10 @@ function processCSV(text, filenameContext) {
 
         // Try URL coordinates
         if (isNaN(lat) || isNaN(lng) || lat === 0) {
-            const coordMatch = url.match(/\/@([-\d.]+),([-\d.]+),\d+z\//);
-            if (coordMatch) {
-                lat = parseFloat(coordMatch[1]);
-                lng = parseFloat(coordMatch[2]);
+            const urlCoords = extractCoordsFromUrl(url);
+            if (urlCoords) {
+                lat = urlCoords.lat;
+                lng = urlCoords.lng;
             }
         }
 
@@ -1190,23 +1238,12 @@ function processCSV(text, filenameContext) {
 
         geocodePlace(geocodeName, (result) => {
             if (result) {
-                const idx = allPlaces.findIndex(p => p.id === placeId);
-                if (idx >= 0) {
-                    const rLat = parseFloat(result.lat);
-                    const rLng = parseFloat(result.lon);
-                    allPlaces[idx].lat = rLat;
-                    allPlaces[idx].lng = rLng;
-                    if (isFarFromFolder(filenameContext, placeId, rLat, rLng)) {
-                        triageData[placeId].needsReview = true;
-                    }
-                    // Upgrade category from OSM data if still on the keyword-guessed value
-                    const osmCat = osmTypeToCategory(result.class, result.type);
-                    if (osmCat && triageData[placeId] && !triageData[placeId].lastModified) {
-                        triageData[placeId].category = osmCat;
-                    }
-                    saveState();
-                    applyFiltersAndRender();
+                // Upgrade category from OSM data if still on the keyword-guessed value
+                const osmCat = osmTypeToCategory(result.class, result.type);
+                if (osmCat && triageData[placeId] && !triageData[placeId].lastModified) {
+                    triageData[placeId].category = osmCat;
                 }
+                applyGeocodeResult(placeId, result, filenameContext);
             }
         }, filenameContext);
     });
@@ -1232,8 +1269,12 @@ function processGeocodedJSON(data, folderName) {
             allPlaces.some(p => p.name.toLowerCase().trim() === name.toLowerCase().trim() && triageData[p.id]?.folder === folderName);
         if (isDuplicate) return;
 
-        const lat = parseFloat(item.lat || item.coordinates?.lat || 0);
-        const lng = parseFloat(item.lng || item.coordinates?.lng || 0);
+        let lat = parseFloat(item.lat || item.coordinates?.lat || 0);
+        let lng = parseFloat(item.lng || item.coordinates?.lng || 0);
+        if ((!lat || !lng) && url !== '#') {
+            const urlCoords = extractCoordsFromUrl(url);
+            if (urlCoords) { lat = urlCoords.lat; lng = urlCoords.lng; }
+        }
         const placeId = item.id || `json-${folderName}-${i}-${Date.now()}`;
 
         // Some exports only give us an address as the "name" (no separate
@@ -1260,20 +1301,7 @@ function processGeocodedJSON(data, folderName) {
         // Geocode if no coordinates
         if (!lat || !lng) {
             geocodePlace(name, (result) => {
-                if (result) {
-                    const idx = allPlaces.findIndex(p => p.id === placeId);
-                    if (idx >= 0) {
-                        const rLat = parseFloat(result.lat);
-                        const rLng = parseFloat(result.lon);
-                        allPlaces[idx].lat = rLat;
-                        allPlaces[idx].lng = rLng;
-                        if (isFarFromFolder(folderName, placeId, rLat, rLng)) {
-                            triageData[placeId].needsReview = true;
-                        }
-                        saveState();
-                        applyFiltersAndRender();
-                    }
-                }
+                if (result) applyGeocodeResult(placeId, result, folderName);
             }, folderName);
         }
 

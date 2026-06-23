@@ -262,6 +262,17 @@
         </div>
     </div>
 
+    <!-- Saved Places status prompt (shown once per import when star/save data has no rating info) -->
+    <div id="saved-status-modal" class="welcome-popup hidden">
+        <div class="welcome-popup-box">
+            <h2>⭐ About your starred places</h2>
+            <p>Google doesn't tell us what "starred" means to you — it could be places you want to visit, or ones you've already been to and loved. How should we label these?</p>
+            <button class="welcome-popup-btn saved-status-choice" id="saved-status-want" data-status="Want to Go" style="margin-top:1.25rem;">🔵 I want to go there</button>
+            <button class="welcome-popup-btn saved-status-choice" id="saved-status-favourite" data-status="Favourite" style="margin-top:0.6rem;background:#fff;border:2px solid #ffde59;">⭐ These are my favourites</button>
+            <button class="welcome-popup-btn saved-status-choice" id="saved-status-been" data-status="Been There" style="margin-top:0.6rem;background:#fff;border:2px solid #ffde59;">🟡 I've already been there</button>
+        </div>
+    </div>
+
     <!-- Install app modal -->
     <div id="install-modal" class="help-modal hidden">
         <div class="help-modal-backdrop" id="install-modal-backdrop"></div>
