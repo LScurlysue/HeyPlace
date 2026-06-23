@@ -2142,8 +2142,9 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
     const countEl = document.getElementById('unpinned-count');
     btn.disabled = true;
     if (countEl) countEl.classList.add('hidden');
-    btn.textContent = `⏳ Fixing 0/${unpinned.length}`;
+    btn.textContent = `⏳ 0 found / 0/${unpinned.length}`;
     let done = 0;
+    let fixed = 0;
     unpinned.forEach(place => {
         // Mirror the triage panel logic: prefer address over name when available
         const hasAddress = place.address && place.address.trim().length > 2 && place.address.trim() !== place.name.trim();
@@ -2151,7 +2152,6 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
         const placeFolder = triageData[place.id]?.folder;
         geocodePlace(query, (result) => {
             done++;
-            btn.textContent = `⏳ Fixing ${done}/${unpinned.length}`;
             if (result) {
                 const idx = allPlaces.findIndex(p => p.id === place.id);
                 // Only write if the place still has no coordinates (don't overwrite manual fixes)
@@ -2166,9 +2166,14 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                     } else {
                         allPlaces[idx].lat = rLat;
                         allPlaces[idx].lng = rLng;
+                        fixed++;
                     }
                 }
             }
+            // "found" tracks actual successes, separate from "done" (attempts) —
+            // without it, "Fixing 20/65" looked like 20 had been pinned when
+            // really only a handful of those matches succeeded.
+            btn.textContent = `⏳ ${fixed} found / ${done}/${unpinned.length}`;
             // Save every 10 results so progress survives a reload; re-render
             // every result so "Showing X of Y" visibly moves during the run
             // instead of looking frozen until everything finishes.
@@ -2180,7 +2185,7 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                 btn.textContent = '📍 Fix All';
                 if (countEl) countEl.classList.remove('hidden');
                 fixAllRunning = false;
-                showImportToast(`Geocoded ${unpinned.length} places`);
+                showImportToast(`Found locations for ${fixed} of ${unpinned.length} places`);
             }
         }, placeFolder);
     });
