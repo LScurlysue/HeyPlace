@@ -2660,6 +2660,12 @@ searchHintToggle && searchHintToggle.addEventListener('click', () => {
 // Each notification needs a unique id, date, title, and body.
 const NOTIFICATIONS = [
   {
+    id: 'notif-2026-06-23-takeout-pause',
+    date: 'June 23, 2026',
+    title: '🛠️ Hold off on Takeout uploads for now',
+    body: 'We\'re actively improving how Google Takeout imports (Saved Places / Reviews) are matched and pinned. Please don\'t import a Takeout file just yet — we\'ll post here once it\'s ready. In the meantime, adding places one by one through search works great and is fully safe to use.'
+  },
+  {
     id: 'notif-2026-06-20-data',
     date: 'June 20, 2026',
     title: '📦 A note about your data',
