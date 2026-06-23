@@ -1072,7 +1072,11 @@ function geocodePlace(query, callback, contextName) {
 
 // ── Distance helpers for "needs review" detection ─────────────────────────
 // Note: haversineKm({lat,lng}, {lat,lng}) is defined further below (used by trip planner)
-const NEEDS_REVIEW_DISTANCE_KM = 300;
+// Wide on purpose: a real multi-country travel list (e.g. Luxembourg to
+// Portugal is ~1700km) is normal and shouldn't get flagged. This is only
+// meant to catch a name-only geocode landing on a completely different
+// continent — a genuinely different place with the same name.
+const NEEDS_REVIEW_DISTANCE_KM = 3000;
 
 // Centroid of already-pinned, non-flagged places in a folder. Needs at least
 // 2 reference points before we trust it enough to flag outliers.
