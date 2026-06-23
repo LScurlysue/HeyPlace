@@ -321,6 +321,16 @@ function looksLikeAddress(str) {
     return /^\d+[\s,]/.test(s) || /\b\d{4,6}\b/.test(s);
 }
 
+// When a place has no real name — just an address used as a stand-in (see
+// looksLikeAddress mirroring on import) — name and address end up identical.
+// Showing that string twice in a name+address display is redundant, so this
+// returns '' for the address line in that case.
+function displayAddress(place) {
+    if (!place.address) return '';
+    if (place.address.trim() === (place.name || '').trim()) return '';
+    return place.address;
+}
+
 // Folder names that strongly imply a category — used as a fallback when
 // keyword detection on the place name returns 'Other'.
 const FOLDER_CATEGORY_HINTS = [
@@ -1705,7 +1715,7 @@ function renderSidebarList(places) {
             <div class="place-status-indicator emoji-marker ${catConf.cssClass} ${statusClass}">${catConf.emoji}</div>
             <div class="place-details">
                 <div class="place-name">${place.name}${missingCoordinatesBadge}</div>
-                <div class="place-address">${place.address || 'No location metadata found.'}</div>
+                <div class="place-address">${displayAddress(place) || 'No location metadata found.'}</div>
             </div>
         `;
 
@@ -2345,7 +2355,7 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
         localMatches.slice(0, 5).forEach(place => {
             const item = document.createElement('div');
             item.className = 'dropdown-item';
-            item.innerHTML = `<span class="item-icon">📍</span><div class="item-text"><div class="item-name">${place.name}</div><div class="item-addr">${place.address || ''}</div></div>`;
+            item.innerHTML = `<span class="item-icon">📍</span><div class="item-text"><div class="item-name">${place.name}</div><div class="item-addr">${displayAddress(place)}</div></div>`;
             item.addEventListener('click', () => {
                 closeSearchDropdown();
                 searchInput.value = '';
@@ -3847,7 +3857,7 @@ function renderTripPanel() {
             <span class="trip-stop-num" style="--day-color:${color}">${i + 1}</span>
             <div class="trip-stop-info">
                 <div class="trip-stop-name">${catConf.emoji} ${place.name}${data.notes ? ' 📝' : ''}</div>
-                <div class="trip-stop-addr">${place.address || ''}</div>
+                <div class="trip-stop-addr">${displayAddress(place)}</div>
             </div>`;
         li.addEventListener('click', () => {
             map.flyTo([place.lat, place.lng], 16, { duration: 1 });
