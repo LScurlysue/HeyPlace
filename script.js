@@ -686,30 +686,26 @@ document.getElementById('load-demo-btn')?.addEventListener('click', loadDemo);
 document.getElementById('clear-demo-btn')?.addEventListener('click', clearDemo);
 
 function populateDropdowns() {
-    const selects = [
-        document.getElementById('filter-category'),
-        document.getElementById('triage-category')
-    ];
+    const select = document.getElementById('triage-category');
+    const current = select.value;
+    select.innerHTML = '<option value="Unassigned">Select a Category</option>';
 
-    selects.forEach((select, i) => {
-        const current = select.value;
-        select.innerHTML = i === 0 ? '<option value="All">All Categories</option>' : '<option value="Unassigned">Select a Category</option>';
-
-        Object.keys(categoryConfig).forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = `${categoryConfig[name].emoji} ${name}`;
-            select.appendChild(opt);
-        });
-        // Custom categories
-        customCategories.forEach(cc => {
-            const opt = document.createElement('option');
-            opt.value = cc.name;
-            opt.textContent = `${cc.emoji} ${cc.name}`;
-            select.appendChild(opt);
-        });
-        if (current) select.value = current;
+    Object.keys(categoryConfig).forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = `${categoryConfig[name].emoji} ${name}`;
+        select.appendChild(opt);
     });
+    // Custom categories
+    customCategories.forEach(cc => {
+        const opt = document.createElement('option');
+        opt.value = cc.name;
+        opt.textContent = `${cc.emoji} ${cc.name}`;
+        select.appendChild(opt);
+    });
+    if (current) select.value = current;
+
+    populateCategoryFilter();
 
     const triageFolderSelect = document.getElementById('triage-folder');
     const selectedFolderValue = triageFolderSelect.value;
@@ -722,6 +718,56 @@ function populateDropdowns() {
     });
     if (selectedFolderValue) triageFolderSelect.value = selectedFolderValue;
 }
+
+// Multi-select category filter — lets you check several categories at once
+// (e.g. Restaurant + Café / Bar) instead of being limited to one. An empty
+// set means "All Categories".
+let categoryFilterSelected = new Set();
+
+function populateCategoryFilter() {
+    // Drop any selected categories that no longer exist (e.g. a custom
+    // category got deleted) so the filter doesn't silently match nothing.
+    const allNames = [...Object.keys(categoryConfig), ...customCategories.map(c => c.name)];
+    categoryFilterSelected.forEach(name => { if (!allNames.includes(name)) categoryFilterSelected.delete(name); });
+
+    const panel = document.getElementById('filter-category-panel');
+    panel.innerHTML = '';
+
+    const addOption = (name, emoji) => {
+        const label = document.createElement('label');
+        label.className = 'multiselect-option';
+        label.innerHTML = `<input type="checkbox" value="${name}" ${categoryFilterSelected.has(name) ? 'checked' : ''}> ${emoji} ${name}`;
+        label.querySelector('input').addEventListener('change', (e) => {
+            if (e.target.checked) categoryFilterSelected.add(name);
+            else categoryFilterSelected.delete(name);
+            updateCategoryFilterLabel();
+            applyFiltersAndRender();
+        });
+        panel.appendChild(label);
+    };
+
+    Object.keys(categoryConfig).forEach(name => addOption(name, categoryConfig[name].emoji));
+    customCategories.forEach(cc => addOption(cc.name, cc.emoji));
+
+    updateCategoryFilterLabel();
+}
+
+function updateCategoryFilterLabel() {
+    const btn = document.getElementById('filter-category-btn');
+    if (categoryFilterSelected.size === 0) btn.textContent = 'All Categories';
+    else if (categoryFilterSelected.size === 1) btn.textContent = [...categoryFilterSelected][0];
+    else btn.textContent = `${categoryFilterSelected.size} categories selected`;
+}
+
+document.getElementById('filter-category-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('filter-category-panel').classList.toggle('hidden');
+});
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#category-multiselect')) {
+        document.getElementById('filter-category-panel').classList.add('hidden');
+    }
+});
 
 function initMap() {
     const savedTheme = localStorage.getItem('mapfolio_theme') || 'light';
@@ -1585,14 +1631,13 @@ function applyFiltersAndRender() {
     scheduleOsmChecks();
     populateCountryFilter();
 
-    const catFilter = document.getElementById('filter-category').value;
     const statFilter = document.getElementById('filter-status').value;
     const countryFilter = document.getElementById('filter-country')?.value || 'All';
     const searchTerm = document.getElementById('local-search-input').value.toLowerCase().trim();
 
     const filteredPlaces = allPlaces.filter(place => {
         const data = triageData[place.id] || { category: 'Other', status: 'Unsorted', folder: 'Uncategorized' };
-        const matchCategory = catFilter === 'All' || data.category === catFilter;
+        const matchCategory = categoryFilterSelected.size === 0 || categoryFilterSelected.has(data.category);
         const matchStatus = statFilter === 'All' || data.status === statFilter;
         const matchCountry = countryFilter === 'All' || place.country === countryFilter;
         const matchSearch = searchTerm === '' || place.name.toLowerCase().includes(searchTerm) || (place.address || '').toLowerCase().includes(searchTerm) || (data.notes || '').toLowerCase().includes(searchTerm);
@@ -2142,7 +2187,6 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
 });
 
 
-document.getElementById('filter-category').addEventListener('change', applyFiltersAndRender);
 document.getElementById('filter-status').addEventListener('change', applyFiltersAndRender);
 document.getElementById('close-triage').addEventListener('click', closeTriage);
 

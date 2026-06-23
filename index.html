@@ -483,10 +483,11 @@
                 </div>
                 <div class="filters-container collapsed" id="filters-body">
                     <div class="filter-group">
-                        <label for="filter-category">Category</label>
-                        <select id="filter-category">
-                            <option value="All">All Categories</option>
-                        </select>
+                        <label for="filter-category-btn">Category</label>
+                        <div class="multiselect" id="category-multiselect">
+                            <button type="button" id="filter-category-btn" class="multiselect-btn">All Categories</button>
+                            <div class="multiselect-panel hidden" id="filter-category-panel"></div>
+                        </div>
                     </div>
                     <div class="filter-group">
                         <label for="filter-status">Status</label>

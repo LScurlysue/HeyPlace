@@ -560,6 +560,48 @@ body {
 .filter-group { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
 .filter-group label { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); }
 
+.multiselect { position: relative; }
+.multiselect-btn {
+    width: 100%;
+    padding: 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.multiselect-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    max-height: 260px;
+    overflow-y: auto;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 0.25rem;
+}
+.multiselect-panel.hidden { display: none; }
+.multiselect-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.multiselect-option:hover { background: var(--item-hover); }
+.multiselect-option input { cursor: pointer; }
+
 .search-input, select {
     width: 100%;
     padding: 0.55rem;
