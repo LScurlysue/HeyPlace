@@ -1152,6 +1152,7 @@ function isFarFromFolder(folderName, placeId, lat, lng) {
 // folder, don't plot the wrong pin on the map; leave it unpinned and flagged
 // so the user can fix it manually instead of seeing a scattered, wrong dot.
 function applyGeocodeResult(placeId, result, folderName) {
+    if (result === 'RATE_LIMITED') return;
     const idx = allPlaces.findIndex(p => p.id === placeId);
     if (idx < 0) return;
     const rLat = parseFloat(result.lat);
@@ -1173,16 +1174,27 @@ function fetchWithTimeout(url, options = {}, ms = 5000) {
         .finally(() => clearTimeout(timer));
 }
 
+// Returns a place result, null (genuinely no match), or 'RATE_LIMITED' —
+// distinguishing the last case matters because without it, a free
+// geocoding service throttling our IP looks identical to "not found" and
+// silently burns through an entire Fix All run with zero results.
 async function tryGeocode(q) {
+    let nominatimLimited = false;
     // Try Nominatim first
     try {
         const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en' } });
-        const data = await res.json();
-        if (data?.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        if (res.status === 429 || res.status === 403) { nominatimLimited = true; }
+        else {
+            const data = await res.json();
+            if (data?.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        }
     } catch(e) {}
     // Fallback: Photon
     try {
         const res = await fetchWithTimeout(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
+        if (res.status === 429 || res.status === 403) {
+            return nominatimLimited ? 'RATE_LIMITED' : null;
+        }
         const data = await res.json();
         if (data?.features?.length > 0) {
             const [lon, lat] = data.features[0].geometry.coordinates;
@@ -1202,6 +1214,7 @@ function runGeocodeQueue() {
     (async () => {
         for (const v of variants) {
             const result = await tryGeocode(v);
+            if (result === 'RATE_LIMITED') { callback('RATE_LIMITED'); return; }
             if (result) { callback(result); return; }
             await new Promise(r => setTimeout(r, 300)); // small gap between variants
         }
@@ -2145,14 +2158,32 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
     btn.textContent = `⏳ 0 found / 0/${unpinned.length}`;
     let done = 0;
     let fixed = 0;
+    let rateLimitedCount = 0;
+    let aborted = false;
     unpinned.forEach(place => {
         // Mirror the triage panel logic: prefer address over name when available
         const hasAddress = place.address && place.address.trim().length > 2 && place.address.trim() !== place.name.trim();
         const query = hasAddress ? `${place.name} ${place.address.trim()}` : place.name;
         const placeFolder = triageData[place.id]?.folder;
         geocodePlace(query, (result) => {
+            if (aborted) return;
             done++;
-            if (result) {
+            if (result === 'RATE_LIMITED') rateLimitedCount++;
+            // Both free geocoding services throttle by IP — if they're both
+            // blocking us, every remaining attempt will fail the same way.
+            // Stop burning through the rest instead of grinding to 0 found.
+            if (rateLimitedCount >= 5) {
+                aborted = true;
+                geocodeQueue.length = 0;
+                saveState();
+                btn.disabled = false;
+                btn.textContent = '📍 Fix All';
+                if (countEl) countEl.classList.remove('hidden');
+                fixAllRunning = false;
+                showImportToast(`⚠️ Location lookup is being rate-limited right now — found ${fixed} before stopping. Try again in a few minutes.`);
+                return;
+            }
+            if (result && result !== 'RATE_LIMITED') {
                 const idx = allPlaces.findIndex(p => p.id === place.id);
                 // Only write if the place still has no coordinates (don't overwrite manual fixes)
                 if (idx !== -1 && allPlaces[idx].lat === 0 && allPlaces[idx].lng === 0) {
