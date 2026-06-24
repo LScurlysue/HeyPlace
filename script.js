@@ -907,7 +907,14 @@ if (fileUpload) {
             let address = props.location?.address || '';
             if (!address && looksLikeAddress(name)) address = name;
 
-            return { name, address, url, lat, lng, status };
+            // Google already tells us the country for most entries — capture
+            // it so we can both skip a redundant reverse-geocode later and,
+            // more importantly, constrain the forward-geocode search to that
+            // country (a name-only search can otherwise match a same-named
+            // place on the wrong side of the continent).
+            const countryCode = (props.location?.country_code || '').toUpperCase() || undefined;
+
+            return { name, address, url, lat, lng, status, countryCode };
         }).filter(f => f.name !== 'Unnamed Place' || (f.lat !== 0 && f.lng !== 0));
 
         if (normalized.some(f => f.status === 'NEEDS_SAVED_STATUS')) {
@@ -1121,8 +1128,8 @@ function queryVariants(name, contextName) {
     return [...new Set(variants.filter(v => v.length > 2))];
 }
 
-function geocodePlace(query, callback, contextName) {
-    geocodeQueue.push({ query, callback, contextName });
+function geocodePlace(query, callback, contextName, countryCode) {
+    geocodeQueue.push({ query, callback, contextName, countryCode });
     if (!geocodeRunning) runGeocodeQueue();
 }
 
@@ -1188,11 +1195,16 @@ function fetchWithTimeout(url, options = {}, ms = 5000) {
 // distinguishing the last case matters because without it, a free
 // geocoding service throttling our IP looks identical to "not found" and
 // silently burns through an entire Fix All run with zero results.
-async function tryGeocode(q) {
+async function tryGeocode(q, countryCode) {
     let nominatimLimited = false;
-    // Try Nominatim first
+    // Try Nominatim first. countrycodes constrains results to the country
+    // Google itself told us this place is in — without it, a generic name
+    // ("Mondego Store outlet") can match a same-named place on the wrong
+    // side of the continent and nothing in the distance check catches it,
+    // since legitimate multi-country travel lists need that check loose.
+    const countryParam = countryCode ? `&countrycodes=${countryCode.toLowerCase()}` : '';
     try {
-        const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': 'en' } });
+        const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}${countryParam}`, { headers: { 'Accept-Language': 'en' } });
         if (res.status === 429 || res.status === 403) { nominatimLimited = true; }
         else {
             const data = await res.json();
@@ -1217,13 +1229,13 @@ async function tryGeocode(q) {
 function runGeocodeQueue() {
     if (geocodeQueue.length === 0) { geocodeRunning = false; return; }
     geocodeRunning = true;
-    const { query, callback, contextName } = geocodeQueue.shift();
+    const { query, callback, contextName, countryCode } = geocodeQueue.shift();
     const variants = queryVariants(query, contextName);
 
     // Try each variant in sequence until one succeeds
     (async () => {
         for (const v of variants) {
-            const result = await tryGeocode(v);
+            const result = await tryGeocode(v, countryCode);
             if (result === 'RATE_LIMITED') { callback('RATE_LIMITED'); return; }
             if (result) { callback(result); return; }
             await new Promise(r => setTimeout(r, 300)); // small gap between variants
@@ -1379,7 +1391,11 @@ function processGeocodedJSON(data, folderName) {
         let address = item.address || item.notes || '';
         if (!address && looksLikeAddress(name)) address = name;
 
-        allPlaces.push({
+        // Google already tells us the country for most entries — use it
+        // immediately instead of waiting on a reverse-geocode, and below to
+        // constrain the forward-geocode search so a name-only match can't
+        // land in the wrong country.
+        const place = {
             id: placeId,
             name,
             address,
@@ -1387,7 +1403,13 @@ function processGeocodedJSON(data, folderName) {
             lat: isNaN(lat) ? 0 : lat,
             lng: isNaN(lng) ? 0 : lng,
             dateAdded: Date.now()
-        });
+        };
+        if (item.countryCode) {
+            const known = COUNTRIES.find(c => c[0] === item.countryCode);
+            place.country = known ? known[1] : item.countryCode;
+            place.countryCode = item.countryCode;
+        }
+        allPlaces.push(place);
 
         triageData[placeId] = {
             category: detectCategory(name, address, folderName),
@@ -1399,7 +1421,7 @@ function processGeocodedJSON(data, folderName) {
         if (!lat || !lng) {
             geocodePlace(name, (result) => {
                 if (result) applyGeocodeResult(placeId, result, folderName);
-            }, folderName);
+            }, folderName, item.countryCode);
         }
 
         importedCount++;
@@ -2239,7 +2261,7 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                 fixAllRunning = false;
                 showImportToast(`Found locations for ${fixed} of ${unpinned.length} places`);
             }
-        }, placeFolder);
+        }, placeFolder, place.countryCode);
     });
 });
 
