@@ -1094,6 +1094,16 @@ function queryVariants(name, contextName) {
         variants.push(`${name}, ${contextName.trim()}`);
     }
     variants.push(name);
+    // For a full street address ("11 Rue d'Ernzen, 7615 Larochette,
+    // Luxembourg"), the exact street+number often has no match in free
+    // geocoders, but city+country almost always does. Drop the leading
+    // (street) part progressively, keeping the city/country tail — the
+    // opposite of the keep-first-part fallback below, which would throw
+    // away exactly the part a geocoder needs most for an address string.
+    if (looksLikeAddress(name) && name.includes(',')) {
+        const parts = name.split(',').map(p => p.trim()).filter(Boolean);
+        for (let i = 1; i < parts.length; i++) variants.push(parts.slice(i).join(', '));
+    }
     // After " - " keep only the second part (e.g. "OUTDOOR - Glacier Canyon" → "Glacier Canyon")
     if (name.includes(' - ')) variants.push(name.split(' - ').pop().trim());
     // Before " - " (e.g. "Café du Coin - Paris" → "Café du Coin")
@@ -1744,7 +1754,13 @@ function renderUnpinned() {
     unpinned.forEach(place => {
         const li = document.createElement('li');
         li.className = 'unpinned-item';
-        li.innerHTML = `<span class="unpinned-name">${place.name}</span><button class="unpinned-edit-btn" title="Fix coordinates">✏️</button>`;
+        // Distinguish "we searched and found nothing" from "haven't tried
+        // yet" — otherwise there's no way to tell which unpinned places
+        // still need a search vs which genuinely need manual coordinates.
+        const failedBadge = triageData[place.id]?.geocodeFailed
+            ? ' <span class="unpinned-failed-badge" title="Searched automatically, no match found — needs manual coordinates">❌ not found</span>'
+            : '';
+        li.innerHTML = `<span class="unpinned-name">${place.name}${failedBadge}</span><button class="unpinned-edit-btn" title="Fix coordinates">✏️</button>`;
         li.querySelector('.unpinned-edit-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             openTriagePanel(place);
@@ -2200,6 +2216,11 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
                         fixed++;
                     }
                 }
+            } else if (result === null && triageData[place.id]) {
+                // Genuinely no match (not rate-limited) — flag so the
+                // unpinned list shows this needs manual coordinates rather
+                // than looking identical to a place that hasn't been tried.
+                triageData[place.id].geocodeFailed = true;
             }
             // "found" tracks actual successes, separate from "done" (attempts) —
             // without it, "Fixing 20/65" looked like 20 had been pinned when

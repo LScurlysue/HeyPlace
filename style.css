@@ -554,6 +554,7 @@ body {
 }
 .unpinned-item:hover { background: var(--item-hover); }
 .unpinned-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unpinned-failed-badge { font-size: 0.7rem; color: var(--status-red); font-weight: 600; white-space: nowrap; }
 .unpinned-edit-btn { background: none; border: none; cursor: pointer; font-size: 0.9rem; flex-shrink: 0; }
 
 .filters-container { display: flex; gap: 0.75rem; }
