@@ -2807,10 +2807,22 @@ function setShareStatusToast(message) {
 }
 
 async function handleSharedVideo() {
-  if (new URLSearchParams(location.search).get('shared') !== '1') return;
+  const sharedParam = new URLSearchParams(location.search).get('shared');
+  if (sharedParam !== '1' && sharedParam !== 'nofile') return;
   history.replaceState(null, '', location.pathname);
 
   const cache = await caches.open('heyplace-share-target');
+
+  if (sharedParam === 'nofile') {
+    const debugCached = await cache.match('/shared-debug');
+    const debugInfo = debugCached ? await debugCached.json().catch(() => ({})) : {};
+    await cache.delete('/shared-debug');
+    const received = [debugInfo.title, debugInfo.text, debugInfo.url].filter(Boolean).join(' | ') || 'nothing usable';
+    setShareStatusToast(`Instagram didn't send a video file, only: "${received}". This app can't fetch the video from a link alone.`);
+    setTimeout(() => setShareStatusToast(''), 8000);
+    return;
+  }
+
   const cached = await cache.match('/shared-video');
   if (!cached) return;
   const videoBlob = await cached.blob();
