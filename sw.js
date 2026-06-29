@@ -39,10 +39,22 @@ async function handleShareTarget(event) {
     const formData = await event.request.formData();
     const file = formData.get('video');
     const cache = await caches.open(SHARE_CACHE);
-    if (file) {
+
+    if (file && file.size > 0) {
         await cache.put('/shared-video', new Response(file, { headers: { 'Content-Type': file.type || 'video/mp4' } }));
+        return Response.redirect('./index.html?shared=1', 303);
     }
-    return Response.redirect('./index.html?shared=1', 303);
+
+    // No video file arrived — Instagram (or whichever app) only sent text/a
+    // link. Surface what we actually got so this is debuggable instead of
+    // silently doing nothing.
+    const debugInfo = {
+        title: formData.get('title') || '',
+        text: formData.get('text') || '',
+        url: formData.get('url') || '',
+    };
+    await cache.put('/shared-debug', new Response(JSON.stringify(debugInfo)));
+    return Response.redirect('./index.html?shared=nofile', 303);
 }
 
 // Fetch: network first for version.json (always fresh), cache first for everything else
