@@ -30,9 +30,29 @@ self.addEventListener('activate', event => {
     );
 });
 
+const SHARE_CACHE = 'heyplace-share-target';
+
+// Receive a video shared from another app (e.g. Instagram's share sheet on Android).
+// Service workers can't hand data straight to the page, so we stash the file in
+// Cache Storage and redirect to index.html, which then picks it up.
+async function handleShareTarget(event) {
+    const formData = await event.request.formData();
+    const file = formData.get('video');
+    const cache = await caches.open(SHARE_CACHE);
+    if (file) {
+        await cache.put('/shared-video', new Response(file, { headers: { 'Content-Type': file.type || 'video/mp4' } }));
+    }
+    return Response.redirect('./index.html?shared=1', 303);
+}
+
 // Fetch: network first for version.json (always fresh), cache first for everything else
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
+
+    if (event.request.method === 'POST' && url.pathname.endsWith('/share-target/')) {
+        event.respondWith(handleShareTarget(event));
+        return;
+    }
 
     // Always fetch version.json fresh so update checks work
     if (url.pathname.endsWith('version.json')) {
