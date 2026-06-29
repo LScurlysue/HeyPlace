@@ -2699,7 +2699,7 @@ searchHintToggle && searchHintToggle.addEventListener('click', () => {
 });
 
 // ── Add place from Instagram link ──────────────────────────────
-const EXTRACTOR_API_URL = 'http://localhost:8787/api/extract-place';
+const EXTRACTOR_API_URL = 'https://heyplace.onrender.com/api/extract-place';
 const igLinkInput = document.getElementById('ig-link-input');
 const igLinkSubmit = document.getElementById('ig-link-submit');
 const igLinkStatus = document.getElementById('ig-link-status');
