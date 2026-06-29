@@ -2715,6 +2715,31 @@ function setIgLinkStatus(message, isError) {
   igLinkStatus.style.color = isError ? '#c0392b' : '';
 }
 
+function createDraftPlaceFromExtraction(data, sourceUrl) {
+  const newId = `ig-${Date.now()}`;
+  const newPlace = {
+    id: newId,
+    name: data.placeNameGuess,
+    address: data.addressGuess || '',
+    url: sourceUrl || '#',
+    lat: 0,
+    lng: 0,
+    dateAdded: Date.now(),
+  };
+  allPlaces.push(newPlace);
+  triageData[newId] = {
+    category: detectCategory(newPlace.name, newPlace.address),
+    status: 'Unsorted',
+    folder: 'Uncategorized',
+    lastModified: Date.now(),
+    needsReview: data.confidence === 'low',
+  };
+  saveState();
+  populateDropdowns();
+  applyFiltersAndRender();
+  openTriagePanel(newPlace);
+}
+
 async function handleIgLinkSubmit() {
   const url = igLinkInput.value.trim();
   if (!url) return;
@@ -2744,29 +2769,7 @@ async function handleIgLinkSubmit() {
     igLinkInput.value = '';
     setIgLinkStatus('', false);
     closeDrawer();
-
-    const newId = `ig-${Date.now()}`;
-    const newPlace = {
-      id: newId,
-      name: data.placeNameGuess,
-      address: data.addressGuess || '',
-      url,
-      lat: 0,
-      lng: 0,
-      dateAdded: Date.now(),
-    };
-    allPlaces.push(newPlace);
-    triageData[newId] = {
-      category: detectCategory(newPlace.name, newPlace.address),
-      status: 'Unsorted',
-      folder: 'Uncategorized',
-      lastModified: Date.now(),
-      needsReview: data.confidence === 'low',
-    };
-    saveState();
-    populateDropdowns();
-    applyFiltersAndRender();
-    openTriagePanel(newPlace);
+    createDraftPlaceFromExtraction(data, url);
   } catch (err) {
     setIgLinkStatus(err.message || 'Something went wrong detecting the place from this link.', true);
   } finally {
@@ -2781,6 +2784,41 @@ igLinkInput && igLinkInput.addEventListener('keydown', (e) => {
     handleIgLinkSubmit();
   }
 });
+
+// ── Pick up a video shared into HeyPlace via the Android share sheet ──
+const SHARE_VIDEO_API_URL = 'https://heyplace.onrender.com/api/extract-place-from-video';
+
+async function handleSharedVideo() {
+  if (new URLSearchParams(location.search).get('shared') !== '1') return;
+  history.replaceState(null, '', location.pathname);
+
+  const cache = await caches.open('heyplace-share-target');
+  const cached = await cache.match('/shared-video');
+  if (!cached) return;
+  const videoBlob = await cached.blob();
+  await cache.delete('/shared-video');
+
+  setIgLinkStatus('Watching the shared video for a place name… this can take a bit.', false);
+  try {
+    const formData = new FormData();
+    formData.append('video', videoBlob, 'shared-video.mp4');
+    const res = await fetch(SHARE_VIDEO_API_URL, { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Could not detect a place from this video.');
+    }
+    if (!data.placeNameGuess) {
+      setIgLinkStatus(data.rawNotes || 'No specific place was detected in this video — try adding it manually.', true);
+      return;
+    }
+    setIgLinkStatus('', false);
+    createDraftPlaceFromExtraction(data, '');
+  } catch (err) {
+    setIgLinkStatus(err.message || 'Something went wrong detecting the place from this video.', true);
+  }
+}
+
+handleSharedVideo();
 
 // ── Notifications ──────────────────────────────────────────────
 // To add a new notification: add an object at the TOP of this array.

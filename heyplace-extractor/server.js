@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { GoogleGenAI } = require('@google/genai');
+
+const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 200 * 1024 * 1024 } });
 
 const PORT = process.env.PORT || 8787;
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://heyplace.app';
@@ -117,6 +120,22 @@ app.post('/api/extract-place', async (req, res) => {
     if (tmpPath) {
       fs.unlink(tmpPath, () => {});
     }
+  }
+});
+
+app.post('/api/extract-place-from-video', upload.single('video'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No video file received.' });
+  }
+
+  try {
+    const result = await extractPlaceFromVideo(req.file.path, '');
+    return res.json(result);
+  } catch (err) {
+    console.error('extract-place-from-video failed:', err.message);
+    return res.status(502).json({ error: err.message || 'Failed to extract a place from this video.' });
+  } finally {
+    fs.unlink(req.file.path, () => {});
   }
 });
 
