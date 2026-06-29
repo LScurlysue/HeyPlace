@@ -2788,6 +2788,24 @@ igLinkInput && igLinkInput.addEventListener('keydown', (e) => {
 // ── Pick up a video shared into HeyPlace via the Android share sheet ──
 const SHARE_VIDEO_API_URL = 'https://heyplace.onrender.com/api/extract-place-from-video';
 
+// A toast fixed to the viewport, visible even if the sidebar drawer is closed
+// (unlike #ig-link-status, which lives inside the drawer).
+function setShareStatusToast(message) {
+  let toast = document.getElementById('share-status-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'share-status-toast';
+    toast.className = 'import-toast';
+    document.body.appendChild(toast);
+  }
+  if (!message) {
+    toast.classList.remove('visible');
+    return;
+  }
+  toast.textContent = message;
+  toast.classList.add('visible');
+}
+
 async function handleSharedVideo() {
   if (new URLSearchParams(location.search).get('shared') !== '1') return;
   history.replaceState(null, '', location.pathname);
@@ -2798,7 +2816,7 @@ async function handleSharedVideo() {
   const videoBlob = await cached.blob();
   await cache.delete('/shared-video');
 
-  setIgLinkStatus('Watching the shared video for a place name… this can take a bit.', false);
+  setShareStatusToast('Watching the shared video for a place name… this can take up to a minute.');
   try {
     const formData = new FormData();
     formData.append('video', videoBlob, 'shared-video.mp4');
@@ -2808,13 +2826,15 @@ async function handleSharedVideo() {
       throw new Error(data.error || 'Could not detect a place from this video.');
     }
     if (!data.placeNameGuess) {
-      setIgLinkStatus(data.rawNotes || 'No specific place was detected in this video — try adding it manually.', true);
+      setShareStatusToast(data.rawNotes || 'No specific place was detected in this video — try adding it manually.');
+      setTimeout(() => setShareStatusToast(''), 6000);
       return;
     }
-    setIgLinkStatus('', false);
+    setShareStatusToast('');
     createDraftPlaceFromExtraction(data, '');
   } catch (err) {
-    setIgLinkStatus(err.message || 'Something went wrong detecting the place from this video.', true);
+    setShareStatusToast(err.message || 'Something went wrong detecting the place from this video.');
+    setTimeout(() => setShareStatusToast(''), 6000);
   }
 }
 
