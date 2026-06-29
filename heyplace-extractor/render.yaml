@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: heyplace-extractor
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGIN
+        value: https://heyplace.app
