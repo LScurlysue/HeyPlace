@@ -461,6 +461,12 @@
                     <input type="text" id="local-search-input" placeholder="Search or add a place..." class="search-input local-search" autocomplete="off" />
                     <div id="place-search-dropdown" class="place-search-dropdown hidden"></div>
                 </div>
+                <div class="search-input-wrapper" style="position:relative; margin-top:0.5rem;">
+                    <span class="search-icon"><i class="ti ti-brand-instagram"></i></span>
+                    <input type="url" id="ig-link-input" placeholder="Paste an Instagram reel/post link to detect the place..." class="search-input" autocomplete="off" />
+                    <button id="ig-link-submit" class="search-hint-toggle" title="Detect place from Instagram link" style="position:absolute; right:0.4rem; top:50%; transform:translateY(-50%);">➤</button>
+                </div>
+                <p id="ig-link-status" class="search-hint hidden" style="margin-top:0.3rem;"></p>
             </section>
 
             <section class="upload-section compact">

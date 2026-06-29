@@ -2698,6 +2698,90 @@ searchHintToggle && searchHintToggle.addEventListener('click', () => {
   localStorage.removeItem(HINT_KEY);
 });
 
+// ── Add place from Instagram link ──────────────────────────────
+const EXTRACTOR_API_URL = 'http://localhost:8787/api/extract-place';
+const igLinkInput = document.getElementById('ig-link-input');
+const igLinkSubmit = document.getElementById('ig-link-submit');
+const igLinkStatus = document.getElementById('ig-link-status');
+
+function setIgLinkStatus(message, isError) {
+  if (!igLinkStatus) return;
+  if (!message) {
+    igLinkStatus.classList.add('hidden');
+    return;
+  }
+  igLinkStatus.textContent = message;
+  igLinkStatus.classList.remove('hidden');
+  igLinkStatus.style.color = isError ? '#c0392b' : '';
+}
+
+async function handleIgLinkSubmit() {
+  const url = igLinkInput.value.trim();
+  if (!url) return;
+  if (!/^https?:\/\/(www\.)?instagram\.com\//i.test(url)) {
+    setIgLinkStatus('That doesn\'t look like an Instagram link.', true);
+    return;
+  }
+
+  igLinkSubmit.disabled = true;
+  setIgLinkStatus('Watching the video for a place name… this can take a bit.', false);
+
+  try {
+    const res = await fetch(EXTRACTOR_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Could not detect a place from this link.');
+    }
+    if (!data.placeNameGuess) {
+      setIgLinkStatus(data.rawNotes || 'No specific place was detected in this video — try adding it manually.', true);
+      return;
+    }
+
+    igLinkInput.value = '';
+    setIgLinkStatus('', false);
+    closeDrawer();
+
+    const newId = `ig-${Date.now()}`;
+    const newPlace = {
+      id: newId,
+      name: data.placeNameGuess,
+      address: data.addressGuess || '',
+      url,
+      lat: 0,
+      lng: 0,
+      dateAdded: Date.now(),
+    };
+    allPlaces.push(newPlace);
+    triageData[newId] = {
+      category: detectCategory(newPlace.name, newPlace.address),
+      status: 'Unsorted',
+      folder: 'Uncategorized',
+      lastModified: Date.now(),
+      needsReview: data.confidence === 'low',
+    };
+    saveState();
+    populateDropdowns();
+    applyFiltersAndRender();
+    openTriagePanel(newPlace);
+  } catch (err) {
+    setIgLinkStatus(err.message || 'Something went wrong detecting the place from this link.', true);
+  } finally {
+    igLinkSubmit.disabled = false;
+  }
+}
+
+igLinkSubmit && igLinkSubmit.addEventListener('click', handleIgLinkSubmit);
+igLinkInput && igLinkInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    handleIgLinkSubmit();
+  }
+});
+
 // ── Notifications ──────────────────────────────────────────────
 // To add a new notification: add an object at the TOP of this array.
 // Each notification needs a unique id, date, title, and body.
