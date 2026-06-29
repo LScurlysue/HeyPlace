@@ -1,4 +1,4 @@
-const CACHE_NAME = 'heyplace-v20250622.1';
+const CACHE_NAME = 'heyplace-v20260629.1';
 
 const CORE_FILES = [
     './',
