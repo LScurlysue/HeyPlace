@@ -2806,6 +2806,17 @@ function setShareStatusToast(message) {
   toast.classList.add('visible');
 }
 
+// TEMPORARY: shows the exact URL HeyPlace opened with, so we can confirm
+// whether an Android share intent is actually reaching the share-target
+// action at all. Safe to remove once share-target is confirmed working.
+function showDebugUrlBanner() {
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:99999; background:#111; color:#0f0; font-size:11px; padding:4px 8px; word-break:break-all; font-family:monospace;';
+  banner.textContent = 'Opened with: ' + location.href;
+  document.body.appendChild(banner);
+}
+showDebugUrlBanner();
+
 async function handleSharedVideo() {
   const sharedParam = new URLSearchParams(location.search).get('shared');
   if (sharedParam !== '1' && sharedParam !== 'nofile') return;
