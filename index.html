@@ -42,6 +42,7 @@
     <div id="update-banner">
         <span>A new version of HeyPlace is available.</span>
         <button onclick="window.location.reload(true)">Update now</button>
+        <button onclick="document.getElementById('update-banner').classList.remove('visible')" style="background:transparent;color:#aaa;font-size:1.1rem;padding:0.2rem 0.5rem;border:none;cursor:pointer;" aria-label="Dismiss">✕</button>
     </div>
 
     <!-- Top bar -->
@@ -708,7 +709,11 @@
                     const newWorker = reg.installing;
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'activated') {
-                            document.getElementById('update-banner')?.classList.add('visible');
+                            const banner = document.getElementById('update-banner');
+                            if (banner) {
+                                banner.classList.add('visible');
+                                setTimeout(() => banner.classList.remove('visible'), 8000);
+                            }
                         }
                     });
                 });
