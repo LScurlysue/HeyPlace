@@ -1291,16 +1291,35 @@ function fetchWithTimeout(url, options = {}, ms = 5000) {
 // distinguishing the last case matters because without it, a free
 // geocoding service throttling our IP looks identical to "not found" and
 // silently burns through an entire Fix All run with zero results.
-// Services tried in order: free ones FIRST (Nominatim → Photon), and Google
-// LAST — only as a fallback for what the free databases couldn't find. This
-// keeps Google API usage (and everyone's free quota) to a minimum: an easy
-// place costs 0 Google calls; only the genuinely hard ones reach Google.
+// Order: if the user added a Google key, try Google FIRST — it's the most
+// accurate and disambiguates generic names ("IKEA Hotel") far better than the
+// free OSM services, which otherwise return a wrong-country match that then
+// gets rejected, leaving the place unpinned and Google never consulted. Users
+// with no key fall back to the free services (Nominatim → Photon). A typical
+// list uses a few hundred of Google's 10k free monthly lookups.
 async function tryGeocode(q, countryCode) {
     const cc = countryCode ? countryCode.toLowerCase() : '';
     const countryParam = cc ? `&countrycodes=${cc}` : '';
     let anyLimited = false;
 
-    // 1. Nominatim (OSM) — free. countrycodes keeps a generic name from
+    // 1. Google Geocoding — first when a key exists (most accurate).
+    const googleKey = (typeof getGoogleKey === 'function') ? getGoogleKey() : '';
+    if (googleKey) {
+        try {
+            const comp = cc ? `&components=country:${cc}` : '';
+            const res = await fetchWithTimeout(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}${comp}&key=${encodeURIComponent(googleKey)}`);
+            const data = await res.json();
+            if (data.status === 'OK' && data.results?.length > 0) {
+                const loc = data.results[0].geometry.location;
+                return { lat: loc.lat, lon: loc.lng };
+            }
+            // OVER_QUERY_LIMIT — feed the Fix All backoff instead of hammering.
+            if (data.status === 'OVER_QUERY_LIMIT') anyLimited = true;
+            // ZERO_RESULTS / other statuses fall through to the free services.
+        } catch(e) {}
+    }
+
+    // 2. Nominatim (OSM) — free. countrycodes keeps a generic name from
     // matching a same-named place on the wrong continent.
     try {
         const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}${countryParam}`, { headers: { 'Accept-Language': 'en' } });
@@ -1311,7 +1330,7 @@ async function tryGeocode(q, countryCode) {
         }
     } catch(e) {}
 
-    // 2. Photon (Komoot) — free, good POI coverage, but no country filter
+    // 3. Photon (Komoot) — free, good POI coverage, but no country filter
     // param, so a name like "Ice Rink" can match another continent. Pull the
     // top few and keep the first whose country matches the one Google gave us.
     try {
@@ -1330,25 +1349,6 @@ async function tryGeocode(q, countryCode) {
             }
         }
     } catch(e) {}
-
-    // 3. Google Geocoding — LAST resort, only when a key exists and the free
-    // services found nothing. Google knows its own places (small businesses,
-    // local spots) that OSM doesn't, so it rescues the hard cases — while
-    // being reached only for the ~minority of places the free ones missed.
-    const googleKey = (typeof getGoogleKey === 'function') ? getGoogleKey() : '';
-    if (googleKey) {
-        try {
-            const comp = cc ? `&components=country:${cc}` : '';
-            const res = await fetchWithTimeout(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}${comp}&key=${encodeURIComponent(googleKey)}`);
-            const data = await res.json();
-            if (data.status === 'OK' && data.results?.length > 0) {
-                const loc = data.results[0].geometry.location;
-                return { lat: loc.lat, lon: loc.lng };
-            }
-            // OVER_QUERY_LIMIT — feed the Fix All backoff instead of hammering.
-            if (data.status === 'OVER_QUERY_LIMIT') anyLimited = true;
-        } catch(e) {}
-    }
 
     return anyLimited ? 'RATE_LIMITED' : null;
 }
