@@ -2628,15 +2628,17 @@ const searchDropdown = document.getElementById('place-search-dropdown');
 let searchDebounceTimer = null;
 let lastNominatimResults = [];
 
-// Hide the "you can add new places here" hint once the user has searched.
-const searchHint = document.querySelector('.search-hint');
-if (searchHint && localStorage.getItem('searchHintDismissed')) {
-    searchHint.classList.add('hidden');
-}
+// Collapse the search tip to its 💡 toggle once the user has searched.
+// Unified with the 💡/✕ toggle system below (single source of truth: the
+// wrapper is shown/hidden, and the 💡 button reappears) so reopening always
+// shows the full tip instead of an empty box.
 function dismissSearchHint() {
-    if (searchHint && !searchHint.classList.contains('hidden')) {
-        searchHint.classList.add('hidden');
-        localStorage.setItem('searchHintDismissed', '1');
+    const wrapper = document.getElementById('search-hint-wrapper');
+    const toggle = document.getElementById('search-hint-toggle');
+    if (wrapper && !wrapper.classList.contains('hidden')) {
+        wrapper.classList.add('hidden');
+        if (toggle) toggle.classList.remove('hidden');
+        localStorage.setItem('heyplace_search_hint_closed', '1');
     }
 }
 
@@ -2891,9 +2893,15 @@ searchHintClose && searchHintClose.addEventListener('click', () => {
 });
 searchHintToggle && searchHintToggle.addEventListener('click', () => {
   searchHintWrapper.classList.remove('hidden');
+  // Clear any stale hidden state an older version may have left on the inner
+  // text, so the tip actually shows when reopened.
+  searchHintWrapper.querySelector('.search-hint')?.classList.remove('hidden');
   searchHintToggle.classList.add('hidden');
   localStorage.removeItem(HINT_KEY);
 });
+// One-time cleanup of the old dismissal flag so it can't keep the inner text hidden.
+localStorage.removeItem('searchHintDismissed');
+document.querySelector('#search-hint-wrapper .search-hint')?.classList.remove('hidden');
 
 // ── Notifications ──────────────────────────────────────────────
 // To add a new notification: add an object at the TOP of this array.
