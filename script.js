@@ -1188,14 +1188,42 @@ const GENERIC_FOLDER_NAMES = new Set([
     'saved places', 'want to go', 'starred places', 'my places', 'done'
 ]);
 
+// ISO code → English country name (first label in each COUNTRIES row).
+function countryNameFromCode(cc) {
+    if (!cc) return '';
+    const row = COUNTRIES.find(r => r[0] === String(cc).toUpperCase());
+    return row ? row[1] : '';
+}
+
+// Generic venue-type words that hurt a name-only search more than they help:
+// the free geocoders often have "Kockelscheuer" but not "Kockelscheuer Ice
+// Rink", so stripping the category word and adding the country matches where
+// the full name doesn't. (Tested: rescues rinks, rec centres, markets, etc.)
+const GENERIC_VENUE_WORDS = /\b(ice[- ]?rink|skating[- ]?rink|recreation cent(?:er|re)|leisure cent(?:er|re)|sports? cent(?:er|re)|shopping cent(?:er|re)|garden cent(?:er|re)|visitor cent(?:er|re)|cent(?:er|re)|supermarket|market|hotel|hostel|motel|guesthouse|restaurant|caf[eé]|bistro|brasserie|park|playground|farm|alpa[kc]as?|warm spring|hot spring|thermal spring|spring|viewpoint|lookout|self[- ]?guided|walking tour|guided tour|tour)\b/gi;
+
 // Generate progressively simpler query variants for stubborn place names.
 // If contextName looks like a real place (e.g. a city/folder name), try it first
 // to keep generic place names (e.g. "Place de la République") in the right region.
-function queryVariants(name, contextName) {
+function queryVariants(name, contextName, countryCode) {
     const variants = [];
     if (contextName && !GENERIC_FOLDER_NAMES.has(contextName.trim().toLowerCase())) {
         variants.push(`${name}, ${contextName.trim()}`);
     }
+
+    // Country-enriched variants — putting the country in the query TEXT (not
+    // just as a filter) is what makes generic names resolve for free geocoders.
+    const countryName = countryNameFromCode(countryCode);
+    if (countryName) {
+        variants.push(`${name}, ${countryName}`);
+        // Same, but with the generic category word stripped: "Kockelscheuer
+        // Ice Rink" → "Kockelscheuer, Luxembourg".
+        const stripped = name.replace(GENERIC_VENUE_WORDS, ' ').replace(/\s{2,}/g, ' ').trim().replace(/[,\s]+$/, '');
+        if (stripped && stripped.length > 2 && stripped.toLowerCase() !== name.toLowerCase()) {
+            variants.push(`${stripped}, ${countryName}`);
+            variants.push(stripped);
+        }
+    }
+
     variants.push(name);
     // For a full street address ("11 Rue d'Ernzen, 7615 Larochette,
     // Luxembourg"), the exact street+number often has no match in free
@@ -1362,7 +1390,7 @@ function runGeocodeQueue() {
     if (geocodeQueue.length === 0) { geocodeRunning = false; return; }
     geocodeRunning = true;
     const { query, callback, contextName, countryCode } = geocodeQueue.shift();
-    const variants = queryVariants(query, contextName);
+    const variants = queryVariants(query, contextName, countryCode);
 
     // Try each variant in sequence until one succeeds
     (async () => {
