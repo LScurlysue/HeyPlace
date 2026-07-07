@@ -1195,12 +1195,15 @@ function fetchWithTimeout(url, options = {}, ms = 5000) {
 // distinguishing the last case matters because without it, a free
 // geocoding service throttling our IP looks identical to "not found" and
 // silently burns through an entire Fix All run with zero results.
-// Services tried in order: Nominatim → Photon → OpenStreetMap (via geocode.maps.co) → GeoApify (free) → OSM Search API
+// Services tried in order: Nominatim → Photon (country-filtered) →
+// optional keyed geocoder (LocationIQ/Geoapify) if the user added a free key.
 async function tryGeocode(q, countryCode) {
-    const countryParam = countryCode ? `&countrycodes=${countryCode.toLowerCase()}` : '';
+    const cc = countryCode ? countryCode.toLowerCase() : '';
+    const countryParam = cc ? `&countrycodes=${cc}` : '';
     let anyLimited = false;
 
-    // 1. Nominatim (OSM) — best coverage for named places
+    // 1. Nominatim (OSM) — best coverage for named places. countrycodes keeps
+    // a generic name from matching a same-named place on the wrong continent.
     try {
         const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}${countryParam}`, { headers: { 'Accept-Language': 'en' } });
         if (res.status === 429 || res.status === 403) { anyLimited = true; }
@@ -1210,49 +1213,40 @@ async function tryGeocode(q, countryCode) {
         }
     } catch(e) {}
 
-    // 2. Photon (Komoot) — good for POIs, tourist spots
+    // 2. Photon (Komoot) — good POI coverage, but it has NO country filter
+    // param, so a name like "Ice Rink" can match another continent. Pull the
+    // top few and keep the first whose country matches the one Google gave us.
     try {
-        const photonCountry = countryCode ? `&lang=en&location_bias_scale=0.5` : '';
-        const res = await fetchWithTimeout(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1${photonCountry}`);
+        const res = await fetchWithTimeout(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=en`);
         if (res.status === 429 || res.status === 403) { anyLimited = true; }
         else {
             const data = await res.json();
-            if (data?.features?.length > 0) {
-                const [lon, lat] = data.features[0].geometry.coordinates;
-                return { lat, lon };
+            for (const f of (data?.features || [])) {
+                const fcc = (f.properties?.countrycode || '').toLowerCase();
+                // Accept if we don't know the country, the result doesn't
+                // report one, or they match — otherwise skip the wrong-country hit.
+                if (!cc || !fcc || fcc === cc) {
+                    const [lon, lat] = f.geometry.coordinates;
+                    return { lat, lon };
+                }
             }
         }
     } catch(e) {}
 
-    // 3. geocode.maps.co — independent OSM-based, different IP pool
-    try {
-        const res = await fetchWithTimeout(`https://geocode.maps.co/search?q=${encodeURIComponent(q)}&format=json`);
-        if (res.status === 429 || res.status === 403) { anyLimited = true; }
-        else {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
-        }
-    } catch(e) {}
-
-    // 4. LocationIQ free tier — strong POI and address coverage, no key needed for basic search
-    try {
-        const ccParam = countryCode ? `&countrycodes=${countryCode.toLowerCase()}` : '';
-        const res = await fetchWithTimeout(`https://us1.locationiq.com/v1/search?key=pk.0f172819498a979ab5a236b77a367d5a&q=${encodeURIComponent(q)}&format=json&limit=1${ccParam}`, { headers: { 'Accept-Language': 'en' } });
-        if (res.status === 429 || res.status === 403) { anyLimited = true; }
-        else if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
-        }
-    } catch(e) {}
-
-    // 5. OpenStreetMap Overpass + name search via osm.nominatim.geocoder (backup endpoint)
-    try {
-        const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search.php?q=${encodeURIComponent(q)}&format=jsonv2&limit=1`, { headers: { 'Accept-Language': 'en', 'Referer': 'https://heyplace.app' } });
-        if (res.ok) {
-            const data = await res.json();
-            if (data?.length > 0) return { lat: data[0].lat, lon: data[0].lon };
-        }
-    } catch(e) {}
+    // 3. Optional keyed geocoder — only used if the user pasted a free API key
+    // in Settings. Keyed services (LocationIQ, Geoapify) have far better POI /
+    // small-business coverage than the free keyless ones. No key = skipped.
+    const liqKey = localStorage.getItem('heyplace_locationiq_key');
+    if (liqKey) {
+        try {
+            const res = await fetchWithTimeout(`https://us1.locationiq.com/v1/search?key=${encodeURIComponent(liqKey)}&q=${encodeURIComponent(q)}&format=json&limit=1${countryParam}`, { headers: { 'Accept-Language': 'en' } });
+            if (res.status === 429) { anyLimited = true; }
+            else if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+            }
+        } catch(e) {}
+    }
 
     return anyLimited ? 'RATE_LIMITED' : null;
 }
