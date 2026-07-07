@@ -2733,6 +2733,36 @@ function showSearchDropdown(localMatches, nominatimResults, query) {
     searchDropdown.classList.remove('hidden');
 }
 
+// Fetch "add new place" suggestions. Uses Google first when a key exists
+// (much better at name search / disambiguation), falling back to Nominatim.
+// Returns a normalized shape the dropdown already understands: name,
+// display_name, lat, lon (and class/type when the source provides them).
+async function fetchPlaceSuggestions(query) {
+    const googleKey = (typeof getGoogleKey === 'function') ? getGoogleKey() : '';
+    if (googleKey) {
+        try {
+            const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${encodeURIComponent(googleKey)}`);
+            const data = await res.json();
+            if (data.status === 'OK' && Array.isArray(data.results) && data.results.length) {
+                return data.results.slice(0, 5).map(r => ({
+                    name: r.address_components?.[0]?.long_name || r.formatted_address.split(',')[0],
+                    display_name: r.formatted_address,
+                    lat: r.geometry.location.lat,
+                    lon: r.geometry.location.lng
+                }));
+            }
+            // ZERO_RESULTS / errors → fall through to Nominatim.
+        } catch(e) {}
+    }
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`, { headers: { 'Accept-Language': 'en' } });
+        const results = await res.json();
+        return Array.isArray(results) ? results : [];
+    } catch(e) {
+        return [];
+    }
+}
+
 searchInput.addEventListener('input', () => {
     const query = searchInput.value.trim();
     applyFiltersAndRender();
@@ -2754,17 +2784,10 @@ searchInput.addEventListener('input', () => {
         ((triageData[p.id]?.notes || '').toLowerCase().includes(query.toLowerCase()))
     );
 
-    searchDebounceTimer = setTimeout(() => {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(query)}`;
-        fetch(url, { headers: { 'Accept-Language': 'en' } })
-            .then(r => r.json())
-            .then(results => {
-                lastNominatimResults = Array.isArray(results) ? results : [];
-                showSearchDropdown(localMatches, lastNominatimResults, query);
-            })
-            .catch(() => {
-                showSearchDropdown(localMatches, [], query);
-            });
+    searchDebounceTimer = setTimeout(async () => {
+        const results = await fetchPlaceSuggestions(query);
+        lastNominatimResults = results;
+        showSearchDropdown(localMatches, results, query);
     }, 400);
 });
 
