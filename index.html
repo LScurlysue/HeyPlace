@@ -381,6 +381,17 @@
                 <p class="backup-hint">📤 <strong>Sharing a folder with a friend:</strong> open the folder list, tap 📤 next to any folder to download just that folder as a file. They can open it with "Restore from backup" above (leaving the replace box unchecked) to add it to their own map.</p>
 
                 <hr class="settings-divider" />
+                <h3 class="settings-subhead">🔤 Clean up place names</h3>
+                <p class="backup-hint">Some places imported from Google show non-Latin names (e.g. Ukrainian). This replaces them with the Latin name from each place's map link, where one exists. A backup is downloaded first, and names with no Latin version are left unchanged.</p>
+                <button id="cleanup-names-btn" class="trip-planner-btn">
+                    <span class="trip-btn-icon"><i class="ti ti-language" aria-hidden="true"></i></span>
+                    <span class="trip-btn-text">
+                        <span class="trip-btn-title">Clean up names</span>
+                        <span class="trip-btn-hint">Swap non-Latin titles for Latin ones where available</span>
+                    </span>
+                </button>
+
+                <hr class="settings-divider" />
                 <details class="settings-advanced">
                     <summary>Advanced: find hard-to-locate places</summary>
                     <p class="backup-hint">HeyPlace finds most places for free. If some small local spots stay unpinned, you can optionally add your own free <a href="https://developers.google.com/maps/documentation/geocoding/get-api-key" target="_blank" rel="noopener">Google API key</a> — Fix All will use it only for the places the free search can't find. Your key stays on this device.</p>

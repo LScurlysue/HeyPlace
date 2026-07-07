@@ -632,6 +632,53 @@ function getGoogleKey() { return localStorage.getItem(GOOGLE_KEY_STORAGE) || '';
 })();
 
 document.getElementById('backup-btn')?.addEventListener('click', downloadBackup);
+
+// ── Clean up non-Latin place names ────────────────────────────────────────
+// Google exports can store a place's title in the account's language (e.g.
+// Ukrainian). The Google Maps URL usually carries the place's Latin name in
+// its /maps/place/<name>/ segment — swap the Cyrillic title for that where
+// one exists. Names with no Latin version in the URL are left untouched.
+const CYRILLIC_RE = /[Ѐ-ӿ]/;
+function cleanUpNames() {
+    const candidates = allPlaces.filter(p => CYRILLIC_RE.test(p.name || ''));
+    if (candidates.length === 0) {
+        showImportToast('No non-Latin place names to clean up. 🎉');
+        return;
+    }
+    if (!confirm(`Replace non-Latin names with their Latin versions where possible?\n\n${candidates.length} place(s) have non-Latin names. A backup file will download first so nothing is lost.`)) {
+        return;
+    }
+    // Safety backup before any bulk rename.
+    downloadBackup();
+
+    let renamed = 0;
+    candidates.forEach(p => {
+        const m = (p.url || '').match(/\/maps\/place\/([^/@?]+)/);
+        if (!m) return;
+        const latin = decodeURIComponent(m[1].replace(/\+/g, ' ')).trim();
+        // Only use it if it's a real Latin name — not itself Cyrillic, not a
+        // coordinate pair, and not a Google plus-code-ish blob.
+        if (latin.length < 2) return;
+        if (CYRILLIC_RE.test(latin)) return;
+        if (/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(latin)) return;
+        const idx = allPlaces.findIndex(x => x.id === p.id);
+        if (idx === -1) return;
+        allPlaces[idx].name = latin;
+        renamed++;
+    });
+
+    if (renamed > 0) {
+        saveState();
+        applyFiltersAndRender();
+        if (typeof populateDropdowns === 'function') populateDropdowns();
+    }
+    showImportToast(
+        renamed > 0
+            ? `Renamed ${renamed} place${renamed > 1 ? 's' : ''} to their Latin names. (Backup downloaded first.)`
+            : `None of the ${candidates.length} could be renamed — their map links had no Latin name. Edit them by hand with ✏️.`
+    );
+}
+document.getElementById('cleanup-names-btn')?.addEventListener('click', cleanUpNames);
 document.getElementById('restore-upload')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     const replaceAll = document.getElementById('restore-replace-checkbox')?.checked;
