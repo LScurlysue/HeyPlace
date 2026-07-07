@@ -1390,12 +1390,25 @@ function runGeocodeQueue() {
     if (geocodeQueue.length === 0) { geocodeRunning = false; return; }
     geocodeRunning = true;
     const { query, callback, contextName, countryCode } = geocodeQueue.shift();
-    const variants = queryVariants(query, contextName, countryCode);
+    // Back-fill the country from the query/folder text when it wasn't provided
+    // (e.g. lost during a restore). Purely additive: if a country is already
+    // known, or none can be inferred, behaviour is exactly as before. This
+    // lets the country-enriched variants and filter kick in for more places.
+    let effectiveCC = countryCode;
+    if (!effectiveCC) {
+        // Only infer from address-like text (contains a comma) or the folder
+        // name — never from a bare single name, so something like "Little
+        // Turkey" can't wrongly bias the search to Türkiye.
+        const fromQuery = query.includes(',') ? matchCountryFromAddress(query) : null;
+        const m = fromQuery || matchCountryFromAddress(contextName);
+        if (m) effectiveCC = m.code;
+    }
+    const variants = queryVariants(query, contextName, effectiveCC);
 
     // Try each variant in sequence until one succeeds
     (async () => {
         for (const v of variants) {
-            const result = await tryGeocode(v, countryCode);
+            const result = await tryGeocode(v, effectiveCC);
             if (result === 'RATE_LIMITED') { callback('RATE_LIMITED'); return; }
             if (result) { callback(result); return; }
             await new Promise(r => setTimeout(r, 300)); // small gap between variants
