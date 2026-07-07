@@ -2125,6 +2125,8 @@ function openTriagePanel(place) {
     document.getElementById('triage-notes').value = data.notes || '';
 
     document.getElementById('triage-panel').classList.remove('hidden');
+    // Always open expanded, even if it was collapsed for the previous place.
+    document.getElementById('triage-panel').classList.remove('collapsed');
     document.getElementById('delete-confirm').classList.add('hidden');
     document.getElementById('delete-place-btn').classList.remove('hidden');
 
@@ -2144,9 +2146,49 @@ function openTriagePanel(place) {
 
 function closeTriage() {
     document.getElementById('triage-panel').classList.add('hidden');
+    document.getElementById('triage-panel').classList.remove('collapsed');
     activePlace = null;
     applyFiltersAndRender();
 }
+
+// ── Collapse / expand the place panel by swiping the handle ───────────────
+// Swipe the handle down to shrink the panel to just name/address/coords
+// (without closing it), swipe up or tap to expand it again for editing.
+(function initTriageCollapse() {
+    const panel = document.getElementById('triage-panel');
+    const handle = document.getElementById('triage-drag-handle');
+    if (!panel || !handle) return;
+
+    function setCollapsed(collapsed) {
+        if (collapsed) {
+            const lat = document.getElementById('triage-lat').value.trim();
+            const lng = document.getElementById('triage-lng').value.trim();
+            const el = document.getElementById('triage-collapsed-coords');
+            if (el) el.textContent = (lat && lng) ? `📍 ${lat}, ${lng}` : '📍 No location set yet — swipe up to add';
+        }
+        panel.classList.toggle('collapsed', collapsed);
+    }
+
+    let startY = null;
+    let moved = false;
+    handle.addEventListener('pointerdown', (e) => {
+        startY = e.clientY;
+        moved = false;
+        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    handle.addEventListener('pointermove', (e) => {
+        if (startY !== null && Math.abs(e.clientY - startY) > 6) moved = true;
+    });
+    handle.addEventListener('pointerup', (e) => {
+        if (startY === null) return;
+        const dy = e.clientY - startY;
+        startY = null;
+        if (dy > 24) setCollapsed(true);          // swipe down → collapse
+        else if (dy < -24) setCollapsed(false);   // swipe up → expand
+        else setCollapsed(!panel.classList.contains('collapsed')); // tap → toggle
+    });
+    handle.addEventListener('pointercancel', () => { startY = null; });
+})();
 
 // ── Auto-geocode address → lat/lng ────────────────────────────────────────
 let geocodeDebounceTimer = null;

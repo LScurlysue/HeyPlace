@@ -778,6 +778,39 @@ body {
 .triage-panel.hidden { display: none !important; }
 .hidden { display: none !important; }
 
+/* Interactive drag handle — swipe down to collapse, up/tap to expand */
+.triage-drag-handle {
+    width: 44px;
+    height: 5px;
+    background: var(--border);
+    border-radius: 99px;
+    margin: 0 auto 0.85rem;
+    cursor: grab;
+    touch-action: none;
+    flex-shrink: 0;
+}
+.triage-drag-handle:active { cursor: grabbing; }
+
+/* Collapsed coords summary — only shown when the panel is collapsed */
+.triage-collapsed-coords {
+    display: none;
+    font-size: 0.85rem;
+    color: var(--text-muted, #666);
+    margin: 0.1rem 0 0.2rem;
+}
+.triage-panel.collapsed .triage-collapsed-coords { display: block; }
+
+/* Collapsed state: keep name, address & coords visible; hide the rest */
+.triage-panel.collapsed .gmaps-link-container,
+.triage-panel.collapsed #needs-review-banner,
+.triage-panel.collapsed #affiliate-bar,
+.triage-panel.collapsed .triage-form {
+    display: none !important;
+}
+.triage-panel.collapsed .triage-address-input { margin-bottom: 0.2rem; }
+/* The interactive handle replaces the old decorative pill pseudo-element. */
+.triage-panel::before { display: none !important; }
+
 .place-search-dropdown {
     position: absolute;
     top: 100%;
