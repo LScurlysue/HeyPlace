@@ -1306,8 +1306,13 @@ async function tryGeocode(q, countryCode) {
     const googleKey = (typeof getGoogleKey === 'function') ? getGoogleKey() : '';
     if (googleKey) {
         try {
-            const comp = cc ? `&components=country:${cc}` : '';
-            const res = await fetchWithTimeout(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}${comp}&key=${encodeURIComponent(googleKey)}`);
+            // Use the stored country as a SOFT bias (region), not a hard
+            // components filter. A hard filter forces the wrong country when
+            // the stored code is stale/wrong (e.g. "Maison Restaurant Trier"
+            // with a leftover GB code landed in Manchester). region only nudges
+            // ties, so explicit text like "Trier" in the query still wins.
+            const region = cc ? `&region=${cc}` : '';
+            const res = await fetchWithTimeout(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}${region}&key=${encodeURIComponent(googleKey)}`);
             const data = await res.json();
             if (data.status === 'OK' && data.results?.length > 0) {
                 const loc = data.results[0].geometry.location;
