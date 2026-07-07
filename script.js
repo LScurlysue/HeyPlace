@@ -2260,14 +2260,14 @@ let fixAllRunning = false;
 document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     if (fixAllRunning) return;
-    const unpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
-    if (unpinned.length === 0) return;
+    const initialUnpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
+    if (initialUnpinned.length === 0) return;
 
-    // Pass 1: re-try URL coordinate extraction — free, instant, no API calls.
+    // Pass 0: re-try URL coordinate extraction — free, instant, no API calls.
     // Some places were imported before the URL parser was added or had a URL
     // pattern that wasn't recognised at the time.
     let urlFixed = 0;
-    unpinned.forEach(place => {
+    initialUnpinned.forEach(place => {
         const idx = allPlaces.findIndex(p => p.id === place.id);
         if (idx === -1) return;
         const coords = extractCoordsFromUrl(place.url);
@@ -2279,94 +2279,117 @@ document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
     });
     if (urlFixed > 0) { saveState(); applyFiltersAndRender(); }
 
-    // After URL pass, re-check what's still unpinned
-    const stillUnpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
-    if (stillUnpinned.length === 0) {
+    if (allPlaces.filter(p => p.lat === 0 && p.lng === 0).length === 0) {
         showImportToast(`Found all ${urlFixed} locations from saved URLs!`);
         return;
     }
 
-    fixAllRunning = true;
-    geocodeQueue.length = 0;
-    geocodeRunning = false;
     const btn = e.currentTarget;
     const countEl = document.getElementById('unpinned-count');
+    fixAllRunning = true;
     btn.disabled = true;
     if (countEl) countEl.classList.add('hidden');
-    btn.textContent = `⏳ 0 found / 0/${stillUnpinned.length}`;
-    let done = 0;
-    let fixed = 0;
-    let consecutiveRateLimited = 0;
-    let backoffTimer = null;
 
-    function finishRun() {
-        if (backoffTimer) { clearTimeout(backoffTimer); backoffTimer = null; }
+    let totalFixed = 0;     // successful search pins across all passes
+    let passNum = 0;
+    // The free geocoders rate-limit us, so a single pass leaves some places
+    // behind. Instead of making the user press Fix All again, we loop passes
+    // automatically: retry what's left, waiting between passes when we were
+    // rate-limited so the limit resets. It stops on its own once a whole pass
+    // finds nothing new — only genuinely-missing places are left by then.
+    const MAX_PASSES = 8;
+
+    function finishAll() {
         saveState();
         btn.disabled = false;
         btn.textContent = '📍 Fix All';
         if (countEl) countEl.classList.remove('hidden');
         fixAllRunning = false;
-        const total = fixed + urlFixed;
-        showImportToast(`Found locations for ${total} of ${unpinned.length} places${urlFixed > 0 ? ` (${urlFixed} from URLs, ${fixed} from search)` : ''}`);
+        const total = totalFixed + urlFixed;
+        const stillLeft = allPlaces.filter(p => p.lat === 0 && p.lng === 0).length;
+        showImportToast(
+            `Found locations for ${total} of ${initialUnpinned.length} places.` +
+            (stillLeft > 0 ? ` ${stillLeft} couldn't be found automatically — tap ✏️ to pin them by hand.` : '')
+        );
     }
 
-    function onGeocodeResult(result, place, placeFolder) {
-        done++;
-        if (result === 'RATE_LIMITED') {
-            consecutiveRateLimited++;
-            // Pause and retry with exponential backoff instead of aborting.
-            // Each pause doubles (15s → 30s → 60s) up to 2 minutes.
-            if (consecutiveRateLimited >= 3 && geocodeQueue.length > 0) {
-                geocodeQueue.length = 0;
-                geocodeRunning = false;
-                const waitSec = Math.min(15 * Math.pow(2, Math.floor(consecutiveRateLimited / 3) - 1), 120);
-                btn.textContent = `⏸ Rate limited — resuming in ${waitSec}s…`;
-                // Re-queue the remaining unresolved places after the pause
-                const remaining = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
-                backoffTimer = setTimeout(() => {
-                    if (!fixAllRunning) return;
-                    remaining.forEach(p => {
-                        const hasAddress = p.address && p.address.trim().length > 2 && p.address.trim() !== p.name.trim();
-                        const q = hasAddress ? `${p.name} ${p.address.trim()}` : p.name;
-                        geocodePlace(q, (r) => onGeocodeResult(r, p, triageData[p.id]?.folder), triageData[p.id]?.folder, p.countryCode);
-                    });
-                    btn.textContent = `⏳ ${fixed} found / ${done}/${stillUnpinned.length}`;
-                }, waitSec * 1000);
-                return;
-            }
-        } else {
-            consecutiveRateLimited = 0;
-        }
+    function runPass() {
+        passNum++;
+        const stillUnpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
+        if (stillUnpinned.length === 0) { finishAll(); return; }
 
-        if (result && result !== 'RATE_LIMITED') {
-            const idx = allPlaces.findIndex(p => p.id === place.id);
-            if (idx !== -1 && allPlaces[idx].lat === 0 && allPlaces[idx].lng === 0) {
-                const rLat = parseFloat(result.lat);
-                const rLng = parseFloat(result.lon);
-                if (isFarFromFolder(placeFolder, place.id, rLat, rLng)) {
-                    triageData[place.id].needsReview = true;
+        geocodeQueue.length = 0;
+        geocodeRunning = false;
+        let done = 0;
+        let fixedThisPass = 0;
+        let rateLimitedThisPass = 0;
+        btn.textContent = `⏳ ${totalFixed} found / 0/${stillUnpinned.length}`;
+
+        function finishPass() {
+            saveState();
+            const remain = allPlaces.filter(p => p.lat === 0 && p.lng === 0).length;
+            // Keep going automatically if there's still hope: either this pass
+            // made progress, or it was blocked by rate-limits (worth retrying
+            // after a wait). Give up only when a pass changes nothing.
+            if (remain > 0 && passNum < MAX_PASSES && (fixedThisPass > 0 || rateLimitedThisPass > 0)) {
+                if (rateLimitedThisPass > 0 && fixedThisPass === 0) {
+                    // Whole pass was throttled — wait for the limit to reset.
+                    let countdown = 25;
+                    btn.textContent = `⏸ Busy — retrying in ${countdown}s…`;
+                    const tick = setInterval(() => {
+                        countdown--;
+                        if (countdown <= 0) { clearInterval(tick); return; }
+                        if (fixAllRunning) btn.textContent = `⏸ Busy — retrying in ${countdown}s…`;
+                    }, 1000);
+                    setTimeout(() => { clearInterval(tick); if (fixAllRunning) runPass(); }, 25000);
                 } else {
-                    allPlaces[idx].lat = rLat;
-                    allPlaces[idx].lng = rLng;
-                    fixed++;
+                    btn.textContent = `⏳ ${totalFixed} found — checking the rest…`;
+                    setTimeout(() => { if (fixAllRunning) runPass(); }, 1200);
                 }
+            } else {
+                finishAll();
             }
-        } else if (result === null && triageData[place.id]) {
-            triageData[place.id].geocodeFailed = true;
         }
 
-        btn.textContent = `⏳ ${fixed} found / ${done}/${stillUnpinned.length}`;
-        if (done % 10 === 0) saveState();
-        applyFiltersAndRender();
-        if (done === stillUnpinned.length) finishRun();
+        function onGeocodeResult(result, place, placeFolder) {
+            done++;
+            if (result === 'RATE_LIMITED') {
+                rateLimitedThisPass++;
+                // Not a real "not found" — leave it unflagged so a later pass
+                // (or manual retry) still treats it as untried.
+            } else if (result) {
+                const idx = allPlaces.findIndex(p => p.id === place.id);
+                if (idx !== -1 && allPlaces[idx].lat === 0 && allPlaces[idx].lng === 0) {
+                    const rLat = parseFloat(result.lat);
+                    const rLng = parseFloat(result.lon);
+                    if (isFarFromFolder(placeFolder, place.id, rLat, rLng)) {
+                        triageData[place.id].needsReview = true;
+                    } else {
+                        allPlaces[idx].lat = rLat;
+                        allPlaces[idx].lng = rLng;
+                        fixedThisPass++;
+                        totalFixed++;
+                    }
+                }
+            } else if (result === null && triageData[place.id]) {
+                triageData[place.id].geocodeFailed = true;
+            }
+
+            btn.textContent = `⏳ ${totalFixed} found / ${done}/${stillUnpinned.length}`;
+            if (done % 10 === 0) saveState();
+            applyFiltersAndRender();
+            if (done === stillUnpinned.length) finishPass();
+        }
+
+        stillUnpinned.forEach(place => {
+            const hasAddress = place.address && place.address.trim().length > 2 && place.address.trim() !== place.name.trim();
+            const query = hasAddress ? `${place.name} ${place.address.trim()}` : place.name;
+            const placeFolder = triageData[place.id]?.folder;
+            geocodePlace(query, (result) => onGeocodeResult(result, place, placeFolder), placeFolder, place.countryCode);
+        });
     }
 
-    stillUnpinned.forEach(place => {
-        const hasAddress = place.address && place.address.trim().length > 2 && place.address.trim() !== place.name.trim();
-        const query = hasAddress ? `${place.name} ${place.address.trim()}` : place.name;
-        const placeFolder = triageData[place.id]?.folder;
-        geocodePlace(query, (result) => onGeocodeResult(result, place, placeFolder), placeFolder, place.countryCode);
-    });
+    runPass();
 });
 
 
