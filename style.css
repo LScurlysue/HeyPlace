@@ -717,6 +717,15 @@ body {
     margin: 0 0 0.5rem;
     font-size: 0.95rem;
 }
+.settings-advanced summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #777;
+    padding: 0.2rem 0;
+    list-style: revert;
+}
+.settings-advanced summary:hover { color: #444; }
+.settings-advanced[open] summary { margin-bottom: 0.4rem; }
 .google-key-row { margin-top: 0.5rem; }
 .google-key-actions {
     display: flex;
