@@ -1244,36 +1244,17 @@ function fetchWithTimeout(url, options = {}, ms = 5000) {
 // distinguishing the last case matters because without it, a free
 // geocoding service throttling our IP looks identical to "not found" and
 // silently burns through an entire Fix All run with zero results.
-// Services tried in order: Nominatim → Photon (country-filtered) →
-// optional keyed geocoder (LocationIQ/Geoapify) if the user added a free key.
+// Services tried in order: free ones FIRST (Nominatim → Photon), and Google
+// LAST — only as a fallback for what the free databases couldn't find. This
+// keeps Google API usage (and everyone's free quota) to a minimum: an easy
+// place costs 0 Google calls; only the genuinely hard ones reach Google.
 async function tryGeocode(q, countryCode) {
     const cc = countryCode ? countryCode.toLowerCase() : '';
     const countryParam = cc ? `&countrycodes=${cc}` : '';
     let anyLimited = false;
 
-    // 0. Google Geocoding — tried FIRST when the user has added a key, because
-    // it knows its own places (which is where most of these were saved from)
-    // far better than the free OSM databases. countrycomponents constrains the
-    // result to the right country so a generic name can't land elsewhere.
-    const googleKey = (typeof getGoogleKey === 'function') ? getGoogleKey() : '';
-    if (googleKey) {
-        try {
-            const comp = cc ? `&components=country:${cc}` : '';
-            const res = await fetchWithTimeout(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}${comp}&key=${encodeURIComponent(googleKey)}`);
-            const data = await res.json();
-            if (data.status === 'OK' && data.results?.length > 0) {
-                const loc = data.results[0].geometry.location;
-                return { lat: loc.lat, lon: loc.lng };
-            }
-            // OVER_QUERY_LIMIT / rate — treat like the free services so the
-            // Fix All backoff kicks in instead of burning through the quota.
-            if (data.status === 'OVER_QUERY_LIMIT') anyLimited = true;
-            // ZERO_RESULTS / other statuses just fall through to the free ones.
-        } catch(e) {}
-    }
-
-    // 1. Nominatim (OSM) — best coverage for named places. countrycodes keeps
-    // a generic name from matching a same-named place on the wrong continent.
+    // 1. Nominatim (OSM) — free. countrycodes keeps a generic name from
+    // matching a same-named place on the wrong continent.
     try {
         const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}${countryParam}`, { headers: { 'Accept-Language': 'en' } });
         if (res.status === 429 || res.status === 403) { anyLimited = true; }
@@ -1283,7 +1264,7 @@ async function tryGeocode(q, countryCode) {
         }
     } catch(e) {}
 
-    // 2. Photon (Komoot) — good POI coverage, but it has NO country filter
+    // 2. Photon (Komoot) — free, good POI coverage, but no country filter
     // param, so a name like "Ice Rink" can match another continent. Pull the
     // top few and keep the first whose country matches the one Google gave us.
     try {
@@ -1303,18 +1284,22 @@ async function tryGeocode(q, countryCode) {
         }
     } catch(e) {}
 
-    // 3. Optional keyed geocoder — only used if the user pasted a free API key
-    // in Settings. Keyed services (LocationIQ, Geoapify) have far better POI /
-    // small-business coverage than the free keyless ones. No key = skipped.
-    const liqKey = localStorage.getItem('heyplace_locationiq_key');
-    if (liqKey) {
+    // 3. Google Geocoding — LAST resort, only when a key exists and the free
+    // services found nothing. Google knows its own places (small businesses,
+    // local spots) that OSM doesn't, so it rescues the hard cases — while
+    // being reached only for the ~minority of places the free ones missed.
+    const googleKey = (typeof getGoogleKey === 'function') ? getGoogleKey() : '';
+    if (googleKey) {
         try {
-            const res = await fetchWithTimeout(`https://us1.locationiq.com/v1/search?key=${encodeURIComponent(liqKey)}&q=${encodeURIComponent(q)}&format=json&limit=1${countryParam}`, { headers: { 'Accept-Language': 'en' } });
-            if (res.status === 429) { anyLimited = true; }
-            else if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+            const comp = cc ? `&components=country:${cc}` : '';
+            const res = await fetchWithTimeout(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}${comp}&key=${encodeURIComponent(googleKey)}`);
+            const data = await res.json();
+            if (data.status === 'OK' && data.results?.length > 0) {
+                const loc = data.results[0].geometry.location;
+                return { lat: loc.lat, lon: loc.lng };
             }
+            // OVER_QUERY_LIMIT — feed the Fix All backoff instead of hammering.
+            if (data.status === 'OVER_QUERY_LIMIT') anyLimited = true;
         } catch(e) {}
     }
 
