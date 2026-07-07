@@ -1,4 +1,7 @@
-const CACHE_NAME = 'heyplace-v20260629.2';
+// Bump this on every deploy — it's the signal the browser watches to know
+// a new version exists. Changing it forces a fresh install + re-cache and
+// wipes the old cache, so installed apps pick up the update automatically.
+const CACHE_NAME = 'heyplace-v20260707.1';
 
 const CORE_FILES = [
     './',
@@ -17,7 +20,12 @@ const CORE_FILES = [
 self.addEventListener('install', event => {
     self.skipWaiting();
     event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_FILES))
+        // {cache:'reload'} bypasses the browser's own HTTP cache so a new
+        // deploy always pulls the real latest files — otherwise the service
+        // worker could re-cache a stale copy the browser had held onto.
+        caches.open(CACHE_NAME).then(cache =>
+            cache.addAll(CORE_FILES.map(u => new Request(u, { cache: 'reload' })))
+        )
     );
 });
 
