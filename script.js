@@ -1195,35 +1195,66 @@ function fetchWithTimeout(url, options = {}, ms = 5000) {
 // distinguishing the last case matters because without it, a free
 // geocoding service throttling our IP looks identical to "not found" and
 // silently burns through an entire Fix All run with zero results.
+// Services tried in order: Nominatim → Photon → OpenStreetMap (via geocode.maps.co) → GeoApify (free) → OSM Search API
 async function tryGeocode(q, countryCode) {
-    let nominatimLimited = false;
-    // Try Nominatim first. countrycodes constrains results to the country
-    // Google itself told us this place is in — without it, a generic name
-    // ("Mondego Store outlet") can match a same-named place on the wrong
-    // side of the continent and nothing in the distance check catches it,
-    // since legitimate multi-country travel lists need that check loose.
     const countryParam = countryCode ? `&countrycodes=${countryCode.toLowerCase()}` : '';
+    let anyLimited = false;
+
+    // 1. Nominatim (OSM) — best coverage for named places
     try {
         const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}${countryParam}`, { headers: { 'Accept-Language': 'en' } });
-        if (res.status === 429 || res.status === 403) { nominatimLimited = true; }
+        if (res.status === 429 || res.status === 403) { anyLimited = true; }
         else {
             const data = await res.json();
             if (data?.length > 0) return { lat: data[0].lat, lon: data[0].lon };
         }
     } catch(e) {}
-    // Fallback: Photon
+
+    // 2. Photon (Komoot) — good for POIs, tourist spots
     try {
-        const res = await fetchWithTimeout(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
-        if (res.status === 429 || res.status === 403) {
-            return nominatimLimited ? 'RATE_LIMITED' : null;
-        }
-        const data = await res.json();
-        if (data?.features?.length > 0) {
-            const [lon, lat] = data.features[0].geometry.coordinates;
-            return { lat, lon };
+        const photonCountry = countryCode ? `&lang=en&location_bias_scale=0.5` : '';
+        const res = await fetchWithTimeout(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1${photonCountry}`);
+        if (res.status === 429 || res.status === 403) { anyLimited = true; }
+        else {
+            const data = await res.json();
+            if (data?.features?.length > 0) {
+                const [lon, lat] = data.features[0].geometry.coordinates;
+                return { lat, lon };
+            }
         }
     } catch(e) {}
-    return null;
+
+    // 3. geocode.maps.co — independent OSM-based, different IP pool
+    try {
+        const res = await fetchWithTimeout(`https://geocode.maps.co/search?q=${encodeURIComponent(q)}&format=json`);
+        if (res.status === 429 || res.status === 403) { anyLimited = true; }
+        else {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        }
+    } catch(e) {}
+
+    // 4. LocationIQ free tier — strong POI and address coverage, no key needed for basic search
+    try {
+        const ccParam = countryCode ? `&countrycodes=${countryCode.toLowerCase()}` : '';
+        const res = await fetchWithTimeout(`https://us1.locationiq.com/v1/search?key=pk.0f172819498a979ab5a236b77a367d5a&q=${encodeURIComponent(q)}&format=json&limit=1${ccParam}`, { headers: { 'Accept-Language': 'en' } });
+        if (res.status === 429 || res.status === 403) { anyLimited = true; }
+        else if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        }
+    } catch(e) {}
+
+    // 5. OpenStreetMap Overpass + name search via osm.nominatim.geocoder (backup endpoint)
+    try {
+        const res = await fetchWithTimeout(`https://nominatim.openstreetmap.org/search.php?q=${encodeURIComponent(q)}&format=jsonv2&limit=1`, { headers: { 'Accept-Language': 'en', 'Referer': 'https://heyplace.app' } });
+        if (res.ok) {
+            const data = await res.json();
+            if (data?.length > 0) return { lat: data[0].lat, lon: data[0].lon };
+        }
+    } catch(e) {}
+
+    return anyLimited ? 'RATE_LIMITED' : null;
 }
 
 function runGeocodeQueue() {
@@ -2179,89 +2210,113 @@ document.getElementById('unpinned-header').addEventListener('click', (e) => {
 let fixAllRunning = false;
 document.getElementById('geocode-all-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    // Guards against a double-click/double-tap firing a second overlapping
-    // run before btn.disabled takes effect — two runs racing on the same
-    // counter is what made the progress number jump backwards.
     if (fixAllRunning) return;
     const unpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
     if (unpinned.length === 0) return;
+
+    // Pass 1: re-try URL coordinate extraction — free, instant, no API calls.
+    // Some places were imported before the URL parser was added or had a URL
+    // pattern that wasn't recognised at the time.
+    let urlFixed = 0;
+    unpinned.forEach(place => {
+        const idx = allPlaces.findIndex(p => p.id === place.id);
+        if (idx === -1) return;
+        const coords = extractCoordsFromUrl(place.url);
+        if (coords) {
+            allPlaces[idx].lat = coords.lat;
+            allPlaces[idx].lng = coords.lng;
+            urlFixed++;
+        }
+    });
+    if (urlFixed > 0) { saveState(); applyFiltersAndRender(); }
+
+    // After URL pass, re-check what's still unpinned
+    const stillUnpinned = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
+    if (stillUnpinned.length === 0) {
+        showImportToast(`Found all ${urlFixed} locations from saved URLs!`);
+        return;
+    }
+
     fixAllRunning = true;
-    // Reset queue state in case a previous run got stuck
     geocodeQueue.length = 0;
     geocodeRunning = false;
     const btn = e.currentTarget;
     const countEl = document.getElementById('unpinned-count');
     btn.disabled = true;
     if (countEl) countEl.classList.add('hidden');
-    btn.textContent = `⏳ 0 found / 0/${unpinned.length}`;
+    btn.textContent = `⏳ 0 found / 0/${stillUnpinned.length}`;
     let done = 0;
     let fixed = 0;
-    let rateLimitedCount = 0;
-    let aborted = false;
-    unpinned.forEach(place => {
-        // Mirror the triage panel logic: prefer address over name when available
+    let consecutiveRateLimited = 0;
+    let backoffTimer = null;
+
+    function finishRun() {
+        if (backoffTimer) { clearTimeout(backoffTimer); backoffTimer = null; }
+        saveState();
+        btn.disabled = false;
+        btn.textContent = '📍 Fix All';
+        if (countEl) countEl.classList.remove('hidden');
+        fixAllRunning = false;
+        const total = fixed + urlFixed;
+        showImportToast(`Found locations for ${total} of ${unpinned.length} places${urlFixed > 0 ? ` (${urlFixed} from URLs, ${fixed} from search)` : ''}`);
+    }
+
+    function onGeocodeResult(result, place, placeFolder) {
+        done++;
+        if (result === 'RATE_LIMITED') {
+            consecutiveRateLimited++;
+            // Pause and retry with exponential backoff instead of aborting.
+            // Each pause doubles (15s → 30s → 60s) up to 2 minutes.
+            if (consecutiveRateLimited >= 3 && geocodeQueue.length > 0) {
+                geocodeQueue.length = 0;
+                geocodeRunning = false;
+                const waitSec = Math.min(15 * Math.pow(2, Math.floor(consecutiveRateLimited / 3) - 1), 120);
+                btn.textContent = `⏸ Rate limited — resuming in ${waitSec}s…`;
+                // Re-queue the remaining unresolved places after the pause
+                const remaining = allPlaces.filter(p => p.lat === 0 && p.lng === 0);
+                backoffTimer = setTimeout(() => {
+                    if (!fixAllRunning) return;
+                    remaining.forEach(p => {
+                        const hasAddress = p.address && p.address.trim().length > 2 && p.address.trim() !== p.name.trim();
+                        const q = hasAddress ? `${p.name} ${p.address.trim()}` : p.name;
+                        geocodePlace(q, (r) => onGeocodeResult(r, p, triageData[p.id]?.folder), triageData[p.id]?.folder, p.countryCode);
+                    });
+                    btn.textContent = `⏳ ${fixed} found / ${done}/${stillUnpinned.length}`;
+                }, waitSec * 1000);
+                return;
+            }
+        } else {
+            consecutiveRateLimited = 0;
+        }
+
+        if (result && result !== 'RATE_LIMITED') {
+            const idx = allPlaces.findIndex(p => p.id === place.id);
+            if (idx !== -1 && allPlaces[idx].lat === 0 && allPlaces[idx].lng === 0) {
+                const rLat = parseFloat(result.lat);
+                const rLng = parseFloat(result.lon);
+                if (isFarFromFolder(placeFolder, place.id, rLat, rLng)) {
+                    triageData[place.id].needsReview = true;
+                } else {
+                    allPlaces[idx].lat = rLat;
+                    allPlaces[idx].lng = rLng;
+                    fixed++;
+                }
+            }
+        } else if (result === null && triageData[place.id]) {
+            triageData[place.id].geocodeFailed = true;
+        }
+
+        btn.textContent = `⏳ ${fixed} found / ${done}/${stillUnpinned.length}`;
+        if (done % 10 === 0) saveState();
+        applyFiltersAndRender();
+        if (done === stillUnpinned.length) finishRun();
+    }
+
+    stillUnpinned.forEach(place => {
         const hasAddress = place.address && place.address.trim().length > 2 && place.address.trim() !== place.name.trim();
         const query = hasAddress ? `${place.name} ${place.address.trim()}` : place.name;
         const placeFolder = triageData[place.id]?.folder;
-        geocodePlace(query, (result) => {
-            if (aborted) return;
-            done++;
-            if (result === 'RATE_LIMITED') rateLimitedCount++;
-            // Both free geocoding services throttle by IP — if they're both
-            // blocking us, every remaining attempt will fail the same way.
-            // Stop burning through the rest instead of grinding to 0 found.
-            if (rateLimitedCount >= 5) {
-                aborted = true;
-                geocodeQueue.length = 0;
-                saveState();
-                btn.disabled = false;
-                btn.textContent = '📍 Fix All';
-                if (countEl) countEl.classList.remove('hidden');
-                fixAllRunning = false;
-                showImportToast(`⚠️ Location lookup is being rate-limited right now — found ${fixed} before stopping. Try again in a few minutes.`);
-                return;
-            }
-            if (result && result !== 'RATE_LIMITED') {
-                const idx = allPlaces.findIndex(p => p.id === place.id);
-                // Only write if the place still has no coordinates (don't overwrite manual fixes)
-                if (idx !== -1 && allPlaces[idx].lat === 0 && allPlaces[idx].lng === 0) {
-                    const rLat = parseFloat(result.lat);
-                    const rLng = parseFloat(result.lon);
-                    // A match implausibly far from the rest of the folder is
-                    // likely the wrong place entirely — leave it unpinned and
-                    // flagged instead of dropping a wrong pin on the map.
-                    if (isFarFromFolder(placeFolder, place.id, rLat, rLng)) {
-                        triageData[place.id].needsReview = true;
-                    } else {
-                        allPlaces[idx].lat = rLat;
-                        allPlaces[idx].lng = rLng;
-                        fixed++;
-                    }
-                }
-            } else if (result === null && triageData[place.id]) {
-                // Genuinely no match (not rate-limited) — flag so the
-                // unpinned list shows this needs manual coordinates rather
-                // than looking identical to a place that hasn't been tried.
-                triageData[place.id].geocodeFailed = true;
-            }
-            // "found" tracks actual successes, separate from "done" (attempts) —
-            // without it, "Fixing 20/65" looked like 20 had been pinned when
-            // really only a handful of those matches succeeded.
-            btn.textContent = `⏳ ${fixed} found / ${done}/${unpinned.length}`;
-            // Save every 10 results so progress survives a reload; re-render
-            // every result so "Showing X of Y" visibly moves during the run
-            // instead of looking frozen until everything finishes.
-            if (done % 10 === 0) saveState();
-            applyFiltersAndRender();
-            if (done === unpinned.length) {
-                saveState();
-                btn.disabled = false;
-                btn.textContent = '📍 Fix All';
-                if (countEl) countEl.classList.remove('hidden');
-                fixAllRunning = false;
-                showImportToast(`Found locations for ${fixed} of ${unpinned.length} places`);
-            }
-        }, placeFolder, place.countryCode);
+        geocodePlace(query, (result) => onGeocodeResult(result, place, placeFolder), placeFolder, place.countryCode);
     });
 });
 

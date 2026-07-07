@@ -664,10 +664,13 @@ body {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 .search-hint-wrapper {
-    display: flex !important;
+    display: flex;
     align-items: flex-start;
     gap: 0.4rem;
     margin-bottom: 0.5rem;
+}
+.search-hint-wrapper.hidden {
+    display: none;
 }
 .search-hint {
     flex: 1;
@@ -679,7 +682,7 @@ body {
     border-left: 3px solid #ffde59;
     padding: 0.4rem 0.6rem;
     border-radius: 4px;
-    display: block !important;
+    display: block;
 }
 .search-hint-close {
     background: none;
