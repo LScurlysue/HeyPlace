@@ -582,6 +582,55 @@ function downloadFolderExport(folderName) {
     URL.revokeObjectURL(url);
 }
 
+// ── Google geocoding key (optional, for better Fix All coverage) ──────────
+const GOOGLE_KEY_STORAGE = 'heyplace_google_key';
+function getGoogleKey() { return localStorage.getItem(GOOGLE_KEY_STORAGE) || ''; }
+
+(function initGoogleKeyUI() {
+    const input = document.getElementById('google-key-input');
+    const saveBtn = document.getElementById('google-key-save');
+    const clearBtn = document.getElementById('google-key-clear');
+    const status = document.getElementById('google-key-status');
+    if (!input || !saveBtn) return;
+
+    function refresh() {
+        const key = getGoogleKey();
+        input.value = key;
+        if (status) {
+            status.textContent = key ? '✅ Key saved — Fix All will use Google.' : '';
+            status.className = 'google-key-status' + (key ? ' ok' : '');
+        }
+    }
+    refresh();
+
+    saveBtn.addEventListener('click', async () => {
+        const key = input.value.trim();
+        if (!key) { if (status) { status.textContent = 'Paste a key first.'; status.className = 'google-key-status err'; } return; }
+        if (status) { status.textContent = '⏳ Checking key…'; status.className = 'google-key-status'; }
+        // Validate against Google with a known address before saving, so a
+        // wrong/restricted key is caught here instead of silently failing later.
+        try {
+            const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=Eiffel+Tower&key=${encodeURIComponent(key)}`);
+            const data = await res.json();
+            if (data.status === 'OK') {
+                localStorage.setItem(GOOGLE_KEY_STORAGE, key);
+                if (status) { status.textContent = '✅ Key works & saved — Fix All will use Google now.'; status.className = 'google-key-status ok'; }
+            } else {
+                const msg = data.error_message || data.status || 'Key rejected by Google.';
+                if (status) { status.textContent = '❌ ' + msg; status.className = 'google-key-status err'; }
+            }
+        } catch (e) {
+            if (status) { status.textContent = '❌ Could not reach Google. Check your connection.'; status.className = 'google-key-status err'; }
+        }
+    });
+
+    clearBtn?.addEventListener('click', () => {
+        localStorage.removeItem(GOOGLE_KEY_STORAGE);
+        input.value = '';
+        refresh();
+    });
+})();
+
 document.getElementById('backup-btn')?.addEventListener('click', downloadBackup);
 document.getElementById('restore-upload')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
@@ -1201,6 +1250,27 @@ async function tryGeocode(q, countryCode) {
     const cc = countryCode ? countryCode.toLowerCase() : '';
     const countryParam = cc ? `&countrycodes=${cc}` : '';
     let anyLimited = false;
+
+    // 0. Google Geocoding — tried FIRST when the user has added a key, because
+    // it knows its own places (which is where most of these were saved from)
+    // far better than the free OSM databases. countrycomponents constrains the
+    // result to the right country so a generic name can't land elsewhere.
+    const googleKey = (typeof getGoogleKey === 'function') ? getGoogleKey() : '';
+    if (googleKey) {
+        try {
+            const comp = cc ? `&components=country:${cc}` : '';
+            const res = await fetchWithTimeout(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(q)}${comp}&key=${encodeURIComponent(googleKey)}`);
+            const data = await res.json();
+            if (data.status === 'OK' && data.results?.length > 0) {
+                const loc = data.results[0].geometry.location;
+                return { lat: loc.lat, lon: loc.lng };
+            }
+            // OVER_QUERY_LIMIT / rate — treat like the free services so the
+            // Fix All backoff kicks in instead of burning through the quota.
+            if (data.status === 'OVER_QUERY_LIMIT') anyLimited = true;
+            // ZERO_RESULTS / other statuses just fall through to the free ones.
+        } catch(e) {}
+    }
 
     // 1. Nominatim (OSM) — best coverage for named places. countrycodes keeps
     // a generic name from matching a same-named place on the wrong continent.
