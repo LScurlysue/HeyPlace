@@ -1788,6 +1788,16 @@ body {
 
 
     .filters-container { flex-direction: column; gap: 0.5rem; }
+
+    /* On phones the floating dropdown covers the Status/Country filters and
+       only fits a few rows. Expand the category list inline instead: it pushes
+       the sections below it down and the sidebar scrolls to reveal them all. */
+    .multiselect-panel {
+        position: static;
+        max-height: none;
+        box-shadow: none;
+        margin-top: 0.35rem;
+    }
 }
 /* ═══ Trip planner ═══════════════════════════════════════════════════════ */
 
