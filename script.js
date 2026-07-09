@@ -1,6 +1,6 @@
 // Version check — fetches version.json fresh from server (bypasses cache)
 // and shows an update banner if the server version is newer than what's running.
-const APP_VERSION = '20250622.2';
+const APP_VERSION = '20260709.1';
 (function checkForUpdate() {
     fetch('version.json?t=' + Date.now())
         .then(r => r.json())

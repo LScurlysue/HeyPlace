@@ -1,4 +1,7 @@
-const CACHE_NAME = 'heyplace-v20260629.2';
+// Bump this on every deploy — it's the signal the browser watches to know
+// a new version exists. Changing it forces a fresh install + re-cache and
+// wipes the old cache, so installed apps pick up the update automatically.
+const CACHE_NAME = 'heyplace-v20260709.1';
 
 const CORE_FILES = [
     './',
