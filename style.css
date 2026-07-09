@@ -1496,6 +1496,13 @@ body {
     flex-direction: column;
     gap: 0.5rem;
 }
+/* The Category filter is a custom dropdown (.multiselect-panel) positioned
+   absolutely inside .filters-container. The container's overflow:hidden (used
+   for the collapse animation) was clipping that dropdown, so the category list
+   got cut off and appeared to overlap the Status/Country filters. Let it
+   overflow when open; keep it clipped only while collapsed. */
+.filters-container { overflow: visible; }
+.filters-container.collapsed { overflow: hidden; }
 
 /* ─── Drawer overlay ──────────────────────────────────────────────────── */
 .drawer-overlay {
